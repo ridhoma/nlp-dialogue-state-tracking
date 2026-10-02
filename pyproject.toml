@@ -1,0 +1,16 @@
+[project]
+name = "analysis-template"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ds-core[all]",
+    # project-specific deps get added here with `uv add` — see §8.2
+]
+
+# Local path, non-editable: a project gets a built snapshot of the library rather
+# than tracking your ongoing edits. No remote involved.
+[tool.uv.sources]
+ds-core = { path = "../../lib/ds-core" }
+
+[dependency-groups]
+dev = ["ipykernel", "ruff", "pytest"]
