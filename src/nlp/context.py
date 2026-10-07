@@ -90,7 +90,7 @@ class DialogueTurnContext:
             If True, only includes prior agent utterances in the context window.
         """
         context_str = self.get_formatted_context(strip_prior_customer_utterances)
-        current_str = f"[CUSTOMER (CURRENT)]: {self.customer_text.strip()}"
+        current_str = f"[CUSTOMER]: {self.customer_text.strip()}"
         if context_str:
             return f"{context_str}\n{current_str}"
         return current_str
