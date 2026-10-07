@@ -179,24 +179,3 @@ class SemanticMatcher(SlotMatcher):
                             list_results[text_idx].append(slot)
 
         return score_results if return_scores else list_results
-
-
-class TwoStageSlotExtractor(SemanticMatcher):
-    """
-    Deprecated alias for SemanticMatcher.
-    RegexMatcher has been removed in favor of direct calibrated SemanticMatcher inference.
-    """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        warnings.warn(
-            "TwoStageSlotExtractor is deprecated; RegexMatcher has been removed. "
-            "Please use SemanticMatcher directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        kwargs.pop("route_by_structure", None)
-        super().__init__(*args, **kwargs)
-
-    def extract(self, *args: Any, **kwargs: Any) -> list[str] | dict[str, float]:
-        """Deprecated compatibility method mapping to extract_slots."""
-        return self.extract_slots(*args, **kwargs)
