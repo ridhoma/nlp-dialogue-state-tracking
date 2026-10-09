@@ -305,3 +305,28 @@ def extract_customer_contexts(
     if group_by_convo:
         return results_grouped
     return results_flat
+
+
+def extract_customer_utterance(text: str) -> str:
+    """
+    Extracts the customer utterance from a contextualized dialogue document.
+
+    If the document contains `[CUSTOMER]: <text>`, extracts the trailing
+    customer message. Otherwise, returns the stripped input text.
+
+    Parameters
+    ----------
+    text : str
+        The input dialogue string (either a contextual document or raw text).
+
+    Returns
+    -------
+    str
+        The stripped customer utterance.
+    """
+    if not text:
+        return ""
+    if "[CUSTOMER]:" in text:
+        return text.rsplit("[CUSTOMER]:", 1)[-1].strip()
+    return text.strip()
+

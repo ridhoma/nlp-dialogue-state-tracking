@@ -37,7 +37,7 @@ def test_get_customer_turn_context_basic():
     assert "[AGENT]: How can I help you today?" in ctx.formatted_context
     assert "[CUSTOMER]: I want to return something." in ctx.formatted_context
     assert "[AGENT]: May I have your name?" in ctx.formatted_context
-    assert "[CUSTOMER (CURRENT)]: Alice Walker" in ctx.full_document
+    assert "[CUSTOMER]: Alice Walker" in ctx.full_document
 
 
 def test_get_customer_turn_context_early_turns():
@@ -76,7 +76,7 @@ def test_consecutive_customer_bursts():
     assert [t["turn_id"] for t in ctx_turn3.prior_turns] == [0, 1, 2]
     assert "[AGENT]: Please provide username and email." in ctx_turn3.formatted_context
     assert "[CUSTOMER]: user_123" in ctx_turn3.formatted_context
-    assert "[CUSTOMER (CURRENT)]: user@example.com" in ctx_turn3.full_document
+    assert "[CUSTOMER]: user@example.com" in ctx_turn3.full_document
 
 
 def test_action_turns_skipped_by_default():
@@ -185,3 +185,28 @@ def test_get_customer_turn_context_non_customer_warning():
     with pytest.warns(UserWarning, match="has speaker 'agent', expected 'customer'"):
         ctx = get_customer_turn_context(turns, current_turn_idx=0, convo_id=1)
     assert ctx is None
+
+
+def test_extract_customer_utterance():
+    from nlp.context import extract_customer_utterance
+
+    # 1. Full document with Agent and Customer turns
+    full_doc = "[AGENT]: Could you please provide your email?\n[CUSTOMER]: myemail@test.com"
+    assert extract_customer_utterance(full_doc) == "myemail@test.com"
+
+    # 2. Multi-turn context
+    multi_turn = (
+        "[AGENT]: Hello\n"
+        "[CUSTOMER]: Hi\n"
+        "[AGENT]: Please give me your order ID.\n"
+        "[CUSTOMER]: 1234567890"
+    )
+    assert extract_customer_utterance(multi_turn) == "1234567890"
+
+    # 3. Raw customer text without tags
+    assert extract_customer_utterance("Only customer text") == "Only customer text"
+
+    # 4. Empty or whitespace text
+    assert extract_customer_utterance("") == ""
+    assert extract_customer_utterance("   ") == ""
+

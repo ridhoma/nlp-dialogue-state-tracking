@@ -20,6 +20,7 @@ Rather than training a real-time conversational agent, this environment is archi
 ```text
 nlp-dialogue-state-tracking/
 ├── ANALYSIS_PLAN.md              # Project analytical blueprint and methodology
+├── EVALS_SLOT_EXTRACTION.md      # Experiment log and leaderboard for DST slot extraction
 ├── IMPLEMENTATION.md             # This implementation and architecture guide
 ├── pyproject.toml                # Project metadata, dependencies, and setuptools package config
 ├── uv.lock                       # Deterministic dependency lockfile
@@ -337,16 +338,16 @@ Evaluated across customer turns against ABCD human-annotated `slot_tags`:
 
 ## 7. Verification & Automated Tests
 
-All functionality across data ingestion, NLP context framing, slot extraction, display, and evaluation is validated by **31 automated pytest unit tests**:
+All functionality across data ingestion, NLP context framing, slot extraction, display, and evaluation is validated by **32 automated pytest unit tests**:
 
 * [`tests/test_data_loader.py`](tests/test_data_loader.py) (10 tests):
   * Validates 10,042 conversation rows, split distribution, turn sequences, 55 intents, 30 actions, CNF boolean satisfaction, and target $Y$ resolution.
 * [`tests/test_nlp_context.py`](tests/test_nlp_context.py) (9 tests):
   * Validates rolling context backward traversal, agent utterance counting, turn ordering, and conversation boundary isolation.
-* [`tests/test_slots.py`](tests/test_slots.py) (6 tests):
-  * Validates `SemanticMatcher` with raw `str` and `list[str]`, Option 1 3-class probability calibration, `return_scores` behavior, empty utterance handling, and deprecation aliases.
-* [`tests/test_evaluation.py`](tests/test_evaluation.py) (3 tests):
-  * Validates multi-label classification metrics, edge cases (empty ground truth, perfect match), and HTML dashboard formatting.
+* [`tests/test_slots.py`](tests/test_slots.py) (5 tests):
+  * Validates `SemanticMatcher` with raw `str` and `list[str]`, Option 1 3-class probability calibration, `return_scores` behavior, and empty utterance handling.
+* [`tests/test_evaluation.py`](tests/test_evaluation.py) (5 tests):
+  * Validates multi-label classification metrics, edge cases, `drop_zero_support=True` filtering, and HTML dashboard formatting.
 * [`tests/test_display.py`](tests/test_display.py) (3 tests):
   * Validates `ConversationView` HTML rendering, turn badges, speaker bubbles, and ABCD conversation viewer integration.
 
