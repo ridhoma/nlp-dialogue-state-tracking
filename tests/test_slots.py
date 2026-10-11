@@ -271,7 +271,6 @@ def test_semantic_matcher_dynamic_thresholds():
         # Test 4: End-to-end extraction with different thresholds per slot
         # Mock logits producing ~0.85 entailment (softmax([-10.0, 0.0, 1.74]) -> ~0.85 entailment)
         # With threshold email=0.90 and phone=0.80, only phone should be active
-        import torch.nn.functional as F
 
         # Target probs: C=0.05, N=0.10, E=0.85
         # logits corresponding to roughly this:

@@ -99,6 +99,14 @@ def test_load_intent_slots_full():
     assert expected_cols.issubset(df.columns)
     assert df["flow"].nunique() == 10
 
+    # Verify native python list types (not numpy arrays)
+    sample_ms = df["mandatory_slots"].iloc[0]
+    assert isinstance(sample_ms, list)
+    assert isinstance(sample_ms[0], list)
+    assert isinstance(sample_ms[0][0], str)
+    assert isinstance(df["canonical_actions"].iloc[0], list)
+    assert isinstance(df["all_slots"].iloc[0], list)
+
 
 def test_load_intent_slots_filter():
     # Single subflow lookup returning dict

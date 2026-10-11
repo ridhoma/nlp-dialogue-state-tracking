@@ -9,7 +9,7 @@ from nlp.context import extract_customer_utterance
 logger = logging.getLogger(__name__)
 
 DEFAULT_GATE_HYPOTHESIS: str = (
-    "The customer provides an identifier, contact info, code, name, or numeric amount."
+    "The customer provides an identifier, contact info, code, name, product, payment method, or numeric amount."
 )
 
 DEFAULT_SLOT_HYPOTHESES: dict[str, str] = {
@@ -18,6 +18,7 @@ DEFAULT_SLOT_HYPOTHESES: dict[str, str] = {
     "email": "The customer enters their email address.",
     "name": "The customer specifies a merchandise product name.",
     "order_id": "The customer specifies an order ID number.",
+    "payment_method": "The customer specifies a payment method.",
     "phone": "The customer provides a telephone phone number.",
     "pin_number": "The customer enters their PIN number.",
     "street_address": "The customer specifies a street address.",
@@ -33,6 +34,7 @@ DEFAULT_SLOT_THRESHOLDS: dict[str, float] = {
     "zip_code": 0.85,
     "amount": 0.90,
     "street_address": 0.90,
+    "payment_method": 0.90,
 }
 
 # Alias for backwards compatibility / shorthand

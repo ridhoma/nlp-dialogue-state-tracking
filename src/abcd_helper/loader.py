@@ -248,6 +248,9 @@ def load_intent_slots(
 
     if _CACHED_INTENT_SCHEMA is None or not use_cache:
         df = pd.read_parquet(INTENT_SCHEMA_PARQUET)
+        from abcd_helper.intent_schema import ensure_native_lists
+
+        df = ensure_native_lists(df)
         if use_cache:
             _CACHED_INTENT_SCHEMA = df
     else:

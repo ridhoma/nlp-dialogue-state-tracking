@@ -376,7 +376,7 @@ INTENT_SCHEMA_DATA = [
         "mandatory_slots": [
             ["customer_name", "account_id"],
             ["order_id"],
-            ["product"],
+            ["product", "name"],
         ],
         "agent_action_slots": ["shipping_option", "membership_level"],
         "sop_summary": (
@@ -449,7 +449,7 @@ INTENT_SCHEMA_DATA = [
             ["username"],
             ["email"],
             ["order_id"],
-            ["product"],
+            ["product", "name"],
         ],
         "agent_action_slots": ["reason_slotval", "amount"],
         "sop_summary": (
@@ -612,7 +612,7 @@ INTENT_SCHEMA_DATA = [
         ],
         "mandatory_slots": [
             ["customer_name", "account_id"],
-            ["product"],
+            ["product", "name"],
         ],
         "agent_action_slots": ["reason_slotval", "company_team"],
         "sop_summary": (
@@ -766,7 +766,7 @@ INTENT_SCHEMA_DATA = [
             ["email"],
             ["order_id"],
             ["full_address", "street_address"],
-            ["product"],
+            ["product", "name"],
         ],
         "agent_action_slots": ["reason_slotval", "order_slotval"],
         "sop_summary": (
@@ -1031,7 +1031,7 @@ INTENT_SCHEMA_DATA = [
             "make-purchase",
         ],
         "mandatory_slots": [
-            ["product"],
+            ["product", "name"],
         ],
         "agent_action_slots": ["details_slotval"],
         "sop_summary": (
@@ -1049,7 +1049,7 @@ INTENT_SCHEMA_DATA = [
             "make-purchase",
         ],
         "mandatory_slots": [
-            ["product"],
+            ["product", "name"],
         ],
         "agent_action_slots": ["details_slotval"],
         "sop_summary": (
@@ -1126,6 +1126,8 @@ def build_intent_schema(actions_df: pd.DataFrame | None = None) -> pd.DataFrame:
     known_slots = set()
     for s_list in actions_df["required_slots"]:
         known_slots.update(s_list)
+    # Add 'name' as a valid alias for merchandise 'product' from ABCD utterance slot_tags
+    known_slots.add("name")
 
     action_to_slots = dict(zip(actions_df["action_name"], actions_df["required_slots"]))
 
@@ -1186,6 +1188,8 @@ def build_intent_schema(actions_df: pd.DataFrame | None = None) -> pd.DataFrame:
             for s in slots:
                 if s not in all_slots_list:
                     all_slots_list.append(s)
+                if s == "product" and "name" not in all_slots_list:
+                    all_slots_list.append("name")
 
         rows.append(
             {
@@ -1201,14 +1205,39 @@ def build_intent_schema(actions_df: pd.DataFrame | None = None) -> pd.DataFrame:
         )
 
     df = pd.DataFrame(rows)
+    return ensure_native_lists(df)
+
+
+def ensure_native_lists(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure all nested list columns in intent schema are pure native Python lists (not numpy arrays)."""
+    if "mandatory_slots" in df.columns:
+        df["mandatory_slots"] = df["mandatory_slots"].apply(
+            lambda val: [
+                [str(x) for x in clause]
+                if hasattr(clause, "__iter__") and not isinstance(clause, (str, bytes))
+                else [str(clause)]
+                for clause in val
+            ]
+            if hasattr(val, "__iter__") and not isinstance(val, (str, bytes))
+            else []
+        )
+    for col in ["canonical_actions", "agent_action_slots", "all_slots"]:
+        if col in df.columns:
+            df[col] = df[col].apply(
+                lambda val: [str(x) for x in val]
+                if hasattr(val, "__iter__") and not isinstance(val, (str, bytes))
+                else []
+            )
     return df
 
 
 def save_intent_schema(
     df: pd.DataFrame | None = None, dest_path=INTENT_SCHEMA_PARQUET
 ) -> pd.DataFrame:
-    """Save intent schema to Parquet format."""
+    """Save intent schema to Parquet format with native python list columns."""
     if df is None:
         df = build_intent_schema()
+    df = ensure_native_lists(df)
     df.to_parquet(dest_path, index=False)
     return df
+

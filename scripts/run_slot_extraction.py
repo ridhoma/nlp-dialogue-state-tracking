@@ -41,8 +41,8 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        default="data/processed/turn_slot_states.parquet",
-        help="Path to save the output dataframe (default: data/processed/turn_slot_states.parquet)",
+        default="data/processed/customer_slots_extracted_run_01.parquet",
+        help="Path to save the output dataframe (default: data/processed/customer_slots_extracted_run_01.parquet)",
     )
     parser.add_argument(
         "--sample",
@@ -112,7 +112,7 @@ def main():
         df_schema["all_slots"].apply(lambda x: global_slots.update(x))
         available_slots = sorted(global_slots)
     else:
-        logger.info("Using 10 core customer entity slots matching benchmark evaluations...")
+        logger.info(f"Using {len(DEFAULT_SLOT_HYPOTHESES)} candidate customer entity slots...")
         available_slots = sorted(DEFAULT_SLOT_HYPOTHESES.keys())
 
     logger.info(f"Loaded {len(available_slots)} available slots: {available_slots}")
