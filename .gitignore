@@ -15,6 +15,12 @@ data/raw/*
 !data/processed/
 data/processed/*
 !data/processed/.gitkeep
+!data/samples/
+data/samples/*
+!data/samples/.gitkeep
+
+# Catch-all for logs anywhere in the project
+*.log
 
 # Catch-all for data and model serialization formats anywhere in the project
 *.parquet
