@@ -22,7 +22,7 @@ def build_feature_matrix(
     df_turns: pd.DataFrame | None = None,
     df_slots: pd.DataFrame | None = None,
     df_schemas: pd.DataFrame | None = None,
-    slots_path: str | Path = "data/processed/customer_slots_extracted_run_01.parquet",
+    slots_path: str | Path = "data/processed/customer_slots_extracted_run_02.parquet",
 ) -> pd.DataFrame:
     """
     Build the complete tabular feature matrix for post-mortem conversation analysis.

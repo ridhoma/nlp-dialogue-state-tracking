@@ -73,10 +73,12 @@ def compute_action_thrashing(actions: Sequence[str]) -> int:
 
 def check_action_prerequisites(action_name: str, cumulative_slots: set[str]) -> bool:
     """
-    Check whether customer entity prerequisites for an action are satisfied.
+    Check whether tracked customer entity prerequisites for an action are satisfied.
 
-    Handles disjunctive requirements (e.g. pull-up-account requiring name OR account_id)
-    and conjunctive requirements (e.g. validate-purchase requiring username, email, order_id).
+    Handles conjunctive requirements (e.g. validate-purchase requiring username, email, order_id)
+    and disjunctive verification requirements across flows (e.g. verify-identity and enter-details).
+    Note: `pull-up-account` is excluded from prerequisite gating because 97.1% of calls use
+    synthetic `customer_name` (which is not in ABCD's ground-truth `slot_tags`).
 
     Args:
         action_name: Name of the executed system action.
@@ -88,16 +90,17 @@ def check_action_prerequisites(action_name: str, cumulative_slots: set[str]) -> 
     if action_name == "validate-purchase":
         return {"username", "email", "order_id"}.issubset(cumulative_slots)
     elif action_name == "pull-up-account":
-        return bool({"customer_name", "account_id"} & cumulative_slots)
+        return True
     elif action_name == "verify-identity":
-        has_id = bool({"customer_name", "account_id"} & cumulative_slots)
-        return has_id and {"order_id", "zip_code"}.issubset(cumulative_slots)
+        return bool(
+            {"order_id", "zip_code", "account_id", "username", "email", "phone", "pin_number"}
+            & cumulative_slots
+        )
     elif action_name == "offer-refund":
         return "amount" in cumulative_slots
     elif action_name == "enter-details":
-        # Usually requires some contact info or address
         return bool(
-            {"full_address", "street_address", "phone", "email", "pin_number", "account_id"}
+            {"full_address", "street_address", "phone", "email", "pin_number", "account_id", "username"}
             & cumulative_slots
         )
     return True
@@ -113,6 +116,12 @@ def extract_ast_features_for_conversation(
     """
     Extract conversation-level AST features for a single conversation.
 
+    To prevent target leakage with the resolution label Y (which is defined by reaching
+    `canonical_actions[-1]` without `"notify-team"`), all AST metrics are evaluated strictly
+    on the pre-terminal prerequisite action sequence:
+      - `canonical_pre`: `canonical_actions[:-1]` excluding `"notify-team"`
+      - `observed_pre`: `actions_taken` excluding `canonical_terminal` and `"notify-team"`
+
     Args:
         convo_id: Conversation identifier.
         actions_taken: List/array of observed system actions executed by agent.
@@ -121,15 +130,25 @@ def extract_ast_features_for_conversation(
         customer_slots_timeline: Optional list of (turn_id, inferred_slots) tuples.
 
     Returns:
-        Dictionary of engineered AST features.
+        Dictionary of engineered pre-terminal AST features.
     """
-    actions_taken_list = list(actions_taken) if actions_taken is not None else []
-    canonical_actions_list = list(canonical_actions) if canonical_actions is not None else []
+    raw_actions_taken = list(actions_taken) if actions_taken is not None else []
+    raw_canonical_actions = list(canonical_actions) if canonical_actions is not None else []
+
+    canonical_terminal = raw_canonical_actions[-1] if len(raw_canonical_actions) > 0 else None
+
+    # Pre-terminal prerequisite sequences (strip outcome-defining actions to prevent target leakage)
+    canonical_actions_list = [
+        act for act in raw_canonical_actions[:-1] if act != "notify-team"
+    ]
+    actions_taken_list = [
+        act for act in raw_actions_taken if act != canonical_terminal and act != "notify-team"
+    ]
 
     num_actions = len(actions_taken_list)
     num_canonical = len(canonical_actions_list)
 
-    # 1. Levenshtein Sequence Alignment
+    # 1. Levenshtein Sequence Alignment (on pre-terminal prerequisite sequence)
     raw_edit = token_levenshtein(actions_taken_list, canonical_actions_list)
     max_len = max(num_actions, num_canonical, 1)
     norm_edit = raw_edit / max_len
@@ -138,21 +157,25 @@ def extract_ast_features_for_conversation(
     thrashing_count = compute_action_thrashing(actions_taken_list)
 
     # 3. Action Counts & Ratios
-    action_count_ratio = num_actions / num_canonical if num_canonical > 0 else (1.0 if num_actions == 0 else float(num_actions))
+    action_count_ratio = (
+        num_actions / num_canonical
+        if num_canonical > 0
+        else (1.0 if num_actions == 0 else float(num_actions))
+    )
     action_count_delta = num_actions - num_canonical
 
-    # 4. Canonical Terminal Compliance & Escalation
-    actual_terminal = actions_taken_list[-1] if num_actions > 0 else None
-    canonical_terminal = canonical_actions_list[-1] if num_canonical > 0 else None
-    reached_canonical_terminal = 1 if (actual_terminal is not None and actual_terminal == canonical_terminal) else 0
-    has_escalation = 1 if "notify-team" in actions_taken_list else 0
-
-    # 5. Premature Actions & Execution Latency
+    # 4. Premature Actions & Execution Latency (over pre-terminal prerequisite-gated actions A_prereq)
+    prereq_actions = {"validate-purchase", "verify-identity", "offer-refund", "enter-details"}
     premature_count = 0
     execution_latencies = []
 
     if action_turns_list and customer_slots_timeline:
         for turn_act, act_name in action_turns_list:
+            if act_name == canonical_terminal or act_name == "notify-team":
+                continue
+            if act_name not in prereq_actions:
+                continue
+
             # Slots available prior to action execution
             prior_slots: set[str] = set()
             for turn_slot, s_list in customer_slots_timeline:
@@ -185,8 +208,6 @@ def extract_ast_features_for_conversation(
         "action_thrashing_count": int(thrashing_count),
         "action_count_ratio": float(action_count_ratio),
         "action_count_delta": int(action_count_delta),
-        "reached_canonical_terminal": int(reached_canonical_terminal),
-        "has_escalation": int(has_escalation),
         "premature_action_attempts": int(premature_count),
         "action_execution_latency_mean": float(mean_latency),
     }

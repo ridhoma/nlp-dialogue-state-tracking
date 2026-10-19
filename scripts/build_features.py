@@ -32,8 +32,8 @@ def main():
     parser.add_argument(
         "--slots_path",
         type=str,
-        default="data/processed/customer_slots_extracted_run_01.parquet",
-        help="Path to extracted customer slots parquet (default: data/processed/customer_slots_extracted_run_01.parquet)",
+        default="data/processed/customer_slots_extracted_run_02.parquet",
+        help="Path to extracted customer slots parquet (default: data/processed/customer_slots_extracted_run_02.parquet)",
     )
     args = parser.parse_args()
 
