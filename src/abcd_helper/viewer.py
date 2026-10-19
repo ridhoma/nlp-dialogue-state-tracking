@@ -2,14 +2,14 @@
 Interactive Conversation Viewer for Jupyter Notebooks and CLI.
 Provides pretty HTML rendering for ABCD conversations with speaker chat bubbles,
 action badges, scenario metadata, and resolution status, delegating to the generic
-viewer in `utils.display`.
+viewer in `utils.display_conversation`.
 """
 
 from typing import Any
 
 import pandas as pd
 
-from utils.display import ConversationView, render_conversation
+from utils.display_conversation import ConversationView, render_conversation
 
 
 class Conversation:

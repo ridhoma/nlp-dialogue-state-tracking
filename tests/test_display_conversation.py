@@ -5,7 +5,7 @@ Unit tests for generic conversation display and ABCD viewer integration.
 import pandas as pd
 
 import abcd_helper as abcd
-from utils.display import ConversationView, render_conversation
+from utils.display_conversation import ConversationView, render_conversation
 
 
 def test_render_generic_dataframe():

@@ -1,49 +1,223 @@
 """
-Generic Interactive Conversation Viewer for Jupyter Notebooks and CLI.
+HTML and visual rendering utilities for Jupyter notebooks and web displays.
 
-Provides dataset-agnostic HTML chat visualization with speaker bubbles,
-action badges, custom metadata headers, and turn-level annotation chips
-(e.g., active dialogue state tracking slots, intents, or sentiment labels).
+Contains presentation logic, styles, and markup generators for:
+- Multi-label classification evaluation dashboards
+- Conversation transcripts with speaker bubbles and metadata
 """
 
 from __future__ import annotations
 
 import html
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import pandas as pd
+if TYPE_CHECKING:
+    import pandas as pd
+    from data_science.evaluation import MultiLabelEvaluationResult
 
 
-class ConversationView:
+def render_evaluation_html(result: MultiLabelEvaluationResult) -> str:
     """
-    Renderable conversation container.
-    Implements `_repr_html_()` for native rendering in Jupyter notebooks.
+    Renders an interactive HTML dashboard for a MultiLabelEvaluationResult.
+
+    Parameters
+    ----------
+    result : MultiLabelEvaluationResult
+        The evaluation result containing summary and per-label metrics.
+
+    Returns
+    -------
+    str
+        Full HTML string ready for Jupyter `_repr_html_()`.
+    """
+    m_dict = result.to_dict()
+
+    def _fmt(val: Any) -> str:
+        if isinstance(val, float):
+            return f"{val:.1%}" if val <= 1.0 else f"{val:.4f}"
+        return str(val)
+
+    exact_match = _fmt(m_dict.get("exact_match_ratio", 0.0))
+    micro_f1 = _fmt(m_dict.get("micro_f1", 0.0))
+    macro_f1 = _fmt(m_dict.get("macro_f1", 0.0))
+    h_loss = f"{m_dict.get('hamming_loss', 0.0):.4f}"
+
+    kpi_cards = f"""
+    <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 130px; background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--eval-text-muted, #64748b); text-transform: uppercase;">Evaluated Turns</div>
+            <div style="font-size: 20px; font-weight: 800; color: var(--eval-text, #0f172a); margin-top: 2px;">{result.num_samples:,}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(59, 130, 246, 0.14); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #3b82f6; text-transform: uppercase;">Exact Match (Subset)</div>
+            <div style="font-size: 20px; font-weight: 800; color: #2563eb; margin-top: 2px;">{exact_match}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(168, 85, 247, 0.14); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #a855f7; text-transform: uppercase;">Macro-F1</div>
+            <div style="font-size: 20px; font-weight: 800; color: #9333ea; margin-top: 2px;">{macro_f1}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #10b981; text-transform: uppercase;">Micro-F1</div>
+            <div style="font-size: 20px; font-weight: 800; color: #059669; margin-top: 2px;">{micro_f1}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(249, 115, 22, 0.14); border: 1px solid rgba(249, 115, 22, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #f97316; text-transform: uppercase;">Hamming Loss</div>
+            <div style="font-size: 20px; font-weight: 800; color: #ea580c; margin-top: 2px;">{h_loss}</div>
+        </div>
+    </div>
     """
 
-    def __init__(
-        self,
-        html_content: str,
-        plain_text: str,
-        turns: list[dict[str, Any]],
-        metadata: dict[str, Any] | None = None,
-    ):
-        self._html = html_content
-        self._text = plain_text
-        self.turns = turns
-        self.metadata = metadata or {}
+    # Format summary table
+    summary_rows = []
+    for _, row in result.summary.iterrows():
+        m_name = html.escape(str(row["metric"]))
+        val = row["value"]
+        val_disp = (
+            f"{val:.1%}"
+            if "ratio" in m_name
+            or "f1" in m_name
+            or "precision" in m_name
+            or "recall" in m_name
+            or "similarity" in m_name
+            else f"{val:.4f}"
+        )
+        summary_rows.append(
+            f"<tr style='border-bottom: 1px solid var(--eval-border, rgba(128,128,128,0.15));'>"
+            f"<td style='padding: 6px 12px; font-weight: 600; color: var(--eval-text, #1e293b);'>{m_name}</td>"
+            f"<td style='padding: 6px 12px; font-family: monospace; color: var(--eval-text, #1e293b);'>{val_disp}</td></tr>"
+        )
 
-    def _repr_html_(self) -> str:
-        return self._html
+    summary_table = f"""
+    <table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-bottom: 16px;">
+        <thead>
+            <tr style="background: var(--eval-table-header, rgba(128,128,128,0.08)); border-bottom: 2px solid var(--eval-border, rgba(128,128,128,0.2)); text-align: left; color: var(--eval-text, #1e293b);">
+                <th style="padding: 8px 12px;">Global Metric</th>
+                <th style="padding: 8px 12px;">Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {"".join(summary_rows)}
+        </tbody>
+    </table>
+    """
 
-    def __repr__(self) -> str:
-        return f"<ConversationView: {len(self.turns)} turns>"
+    # Format per-label table
+    label_rows = []
+    for _, row in result.per_label.iterrows():
+        lbl = html.escape(str(row["label"]))
+        sup = int(row["support"])
+        pred = int(row["predicted"])
+        tp = int(row["tp"])
+        fp = int(row["fp"])
+        fn = int(row["fn"])
+        prec = f"{row['precision']:.1%}"
+        rec = f"{row['recall']:.1%}"
+        f1 = f"{row['f1']:.1%}"
 
-    def __str__(self) -> str:
-        return self._text
+        f1_val = row["f1"]
+        bar_color = (
+            "#10b981"
+            if f1_val >= 0.75
+            else ("#f59e0b" if f1_val >= 0.4 else "#ef4444")
+        )
+        bar_pct = max(min(int(f1_val * 100), 100), 0)
 
-    def print_transcript(self) -> None:
-        """Print plain text representation to standard output."""
-        print(self._text)
+        f1_bar = f"""
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; width: 44px; color: var(--eval-text, #1e293b);">{f1}</span>
+            <div style="flex: 1; background: var(--eval-bar-track, rgba(128,128,128,0.2)); border-radius: 9999px; height: 6px; overflow: hidden; min-width: 60px;">
+                <div style="background: {bar_color}; width: {bar_pct}%; height: 100%;"></div>
+            </div>
+        </div>
+        """
+
+        label_rows.append(f"""
+        <tr style="border-bottom: 1px solid var(--eval-border, rgba(128,128,128,0.15));">
+            <td style="padding: 6px 10px; font-weight: 600; font-family: monospace; color: var(--eval-text, #1e293b);">{lbl}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text-muted, #64748b);">{sup:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text-muted, #64748b);">{pred:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: #10b981; font-weight: 600;">{tp:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: #ef4444;">{fp:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: #f59e0b;">{fn:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text, #1e293b);">{prec}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text, #1e293b);">{rec}</td>
+            <td style="padding: 6px 10px; min-width: 140px;">{f1_bar}</td>
+        </tr>
+        """)
+
+    per_label_table = f"""
+    <div style="max-height: 420px; overflow-y: auto; border: 1px solid var(--eval-border, rgba(128,128,128,0.2)); border-radius: 6px;">
+        <table style="border-collapse: collapse; width: 100%; font-size: 12px; text-align: left;">
+            <thead style="position: sticky; top: 0; background: var(--eval-table-header, rgba(128,128,128,0.08)); border-bottom: 2px solid var(--eval-border, rgba(128,128,128,0.2)); color: var(--eval-text, #1e293b); z-index: 1;">
+                <tr>
+                    <th style="padding: 8px 10px;">Label</th>
+                    <th style="padding: 8px 10px; text-align: right;">Support</th>
+                    <th style="padding: 8px 10px; text-align: right;">Pred</th>
+                    <th style="padding: 8px 10px; text-align: right;">TP</th>
+                    <th style="padding: 8px 10px; text-align: right;">FP</th>
+                    <th style="padding: 8px 10px; text-align: right;">FN</th>
+                    <th style="padding: 8px 10px; text-align: right;">Precision</th>
+                    <th style="padding: 8px 10px; text-align: right;">Recall</th>
+                    <th style="padding: 8px 10px;">F1-Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {"".join(label_rows)}
+            </tbody>
+        </table>
+    </div>
+    """
+
+    container = f"""
+    <div class="ds-eval-dashboard" style="
+        --eval-bg: var(--jp-layout-color1, var(--vscode-editor-background, #ffffff));
+        --eval-card-bg: var(--jp-layout-color2, rgba(128, 128, 128, 0.05));
+        --eval-text: var(--jp-content-font-color1, var(--vscode-editor-foreground, #0f172a));
+        --eval-text-muted: var(--jp-content-font-color2, #64748b);
+        --eval-border: var(--jp-border-color1, rgba(128, 128, 128, 0.18));
+        --eval-table-header: rgba(128, 128, 128, 0.08);
+        --eval-bar-track: rgba(128, 128, 128, 0.15);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        border: 1px solid var(--eval-border);
+        border-radius: 10px;
+        padding: 18px;
+        max-width: 900px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06);
+        background: var(--eval-bg);
+        color: var(--eval-text);
+        margin: 12px 0;
+    ">
+        <style>
+            @media (prefers-color-scheme: dark) {{
+                .ds-eval-dashboard {{
+                    --eval-bg: #1e1e2e !important;
+                    --eval-card-bg: rgba(255, 255, 255, 0.04) !important;
+                    --eval-text: #f1f5f9 !important;
+                    --eval-text-muted: #94a3b8 !important;
+                    --eval-border: rgba(255, 255, 255, 0.12) !important;
+                    --eval-table-header: rgba(255, 255, 255, 0.06) !important;
+                    --eval-bar-track: rgba(255, 255, 255, 0.1) !important;
+                }}
+            }}
+        </style>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--eval-border); padding-bottom: 10px;">
+            <h3 style="margin: 0; font-size: 16px; color: var(--eval-text);">📊 Multi-Label Classification Evaluation</h3>
+            <span style="font-size: 12px; color: var(--eval-text-muted); background: var(--eval-card-bg); border: 1px solid var(--eval-border); padding: 3px 8px; border-radius: 6px;">{result.num_classes} distinct classes</span>
+        </div>
+        {kpi_cards}
+        <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+            <div>
+                <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--eval-text);">Aggregate Performance</h4>
+                {summary_table}
+            </div>
+            <div>
+                <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--eval-text);">Per-Label Classification Breakdown (Ranked by Support)</h4>
+                {per_label_table}
+            </div>
+        </div>
+    </div>
+    """
+    return container
 
 
 def _is_empty_label(val: Any) -> bool:
@@ -56,10 +230,10 @@ def _is_empty_label(val: Any) -> bool:
         return len(val) == 0
     if hasattr(val, "size"):
         return val.size == 0
-    return bool(isinstance(val, float) and pd.isna(val))
+    return False
 
 
-def _format_label_badges(label_val: Any) -> str:
+def format_turn_label_badges(label_val: Any) -> str:
     """Formats turn-level labels into styled HTML chips."""
     if _is_empty_label(label_val):
         return ""
@@ -77,6 +251,8 @@ def _format_label_badges(label_val: Any) -> str:
                     f"border-radius: 9999px; font-size: 11px; font-weight: 600; margin-right: 4px; "
                     f'display: inline-block;">🏷️ {k_esc}</span>'
                 )
+            elif v is False or v is None:
+                continue
             else:
                 v_esc = html.escape(str(v))
                 chips.append(
@@ -121,11 +297,11 @@ def _format_label_badges(label_val: Any) -> str:
     )
 
 
-def render_conversation(
-    turns: pd.DataFrame | list[dict[str, Any]],
+def render_conversation_html(
+    records: list[dict[str, Any]],
+    turn_labels: list[Any],
     title: str | None = None,
     metadata: dict[str, Any] | None = None,
-    labels: str | pd.Series | dict[Any, Any] | list[Any] | None = None,
     status: str | None = None,
     status_color: str | None = None,
     speaker_col: str = "speaker",
@@ -134,72 +310,15 @@ def render_conversation(
     action_name_col: str = "action_name",
     action_values_col: str = "action_values",
     max_height: str = "520px",
-) -> ConversationView:
+) -> tuple[str, str]:
     """
-    Renders any conversation sequence into an interactive HTML visualization.
-
-    Parameters
-    ----------
-    turns : pd.DataFrame | list[dict]
-        Turns sequence containing speaker and utterance text.
-    title : str, optional
-        Title header for the conversation viewer (e.g. 'Conversation #3592').
-    metadata : dict, optional
-        Key-value dictionary displayed in the top subtitle banner.
-    labels : str | pd.Series | dict | list, optional
-        Labels to attach to turns (e.g. inferred slots, intents, emotion):
-        - str: column name inside `turns` (e.g. 'inferred_slots').
-        - dict: mapping of turn_id/index -> label(s).
-        - Series/list: aligned sequence of labels matching turns length.
-    status : str, optional
-        Status badge text (e.g. 'Resolved', 'Failed', 'Escalated').
-    status_color : str, optional
-        CSS background color or preset ('success', 'danger', 'warning').
-    speaker_col : str, default='speaker'
-        Column name identifying the speaker.
-    text_col : str, default='text'
-        Column name containing the dialogue text.
-    turn_id_col : str, default='turn_id'
-        Column name for turn sequence numbers.
-    action_name_col : str, default='action_name'
-        Column name for system action names (if present).
-    action_values_col : str, default='action_values'
-        Column name for system action arguments (if present).
-    max_height : str, default='520px'
-        CSS maximum height for the scrollable dialogue container.
+    Renders conversation records into an HTML string and plain text transcript.
 
     Returns
     -------
-    ConversationView
-        Renderable container with `_repr_html_()` and plain text methods.
+    tuple[str, str]
+        (final_html, full_plain_text)
     """
-    # Normalize turns into list of dicts
-    if isinstance(turns, pd.DataFrame):
-        records = turns.to_dict(orient="records")
-    elif isinstance(turns, list):
-        records = [dict(t) for t in turns]
-    else:
-        raise TypeError(f"Expected DataFrame or list[dict], got {type(turns).__name__}")
-
-    # Resolve labels per turn
-    turn_labels: list[Any] = []
-    if labels is None:
-        turn_labels = [None] * len(records)
-    elif isinstance(labels, str):
-        turn_labels = [r.get(labels) for r in records]
-    elif isinstance(labels, dict):
-        for idx, r in enumerate(records):
-            t_id = r.get(turn_id_col, idx)
-            # Try turn_id key first, fallback to positional index
-            val = labels.get(t_id, labels.get(idx))
-            turn_labels.append(val)
-    elif isinstance(labels, (list, tuple, pd.Series)):
-        turn_labels = list(labels)
-        if len(turn_labels) < len(records):
-            turn_labels.extend([None] * (len(records) - len(turn_labels)))
-    else:
-        turn_labels = [None] * len(records)
-
     # Status badge styling
     status_badge_html = ""
     if status:
@@ -261,7 +380,7 @@ def render_conversation(
         raw_text = str(row.get(text_col, ""))
         text_esc = html.escape(raw_text)
         t_id = row.get(turn_id_col, idx)
-        label_badges_html = _format_label_badges(lbl)
+        label_badges_html = format_turn_label_badges(lbl)
 
         # Plain text log representation
         lbl_str = f" [TAGS: {lbl}]" if not _is_empty_label(lbl) else ""
@@ -446,9 +565,4 @@ def render_conversation(
     </div>
     """
 
-    return ConversationView(
-        html_content=final_html,
-        plain_text=full_plain_text,
-        turns=records,
-        metadata=metadata,
-    )
+    return final_html, full_plain_text
