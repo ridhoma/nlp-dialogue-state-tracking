@@ -17,13 +17,24 @@ from abcd_helper.config import INTENT_SCHEMA_PARQUET
 # =============================================================================
 # PROVENANCE NOTICE: AI-GENERATED NORMATIVE INTENT SCHEMA SPECIFICATION
 # =============================================================================
-# The INTENT_SCHEMA_DATA dictionary below was generated via LLM normative inference
-# (Gemini 3.8 Flash - medium) by synthesizing three authoritative raw dataset files:
+# The INTENT_SCHEMA_DATA dictionary below was initially generated via LLM normative
+# inference (Gemini 3.8 Flash - medium) and subsequently audited and refined by
+# Gemini 4 Argon - medium by synthesizing three authoritative raw dataset files:
 #   1. data/raw/guidelines.json: Human-written SOP flowcharts, customer authentication
 #      policies, prerequisite steps, and branching business rules per subflow.
 #   2. data/raw/ontology.json: Formal schema defining the 30 discrete system actions
 #      and their required/accepted slot arguments.
 #   3. data/raw/kb.json: Canonical action execution sequences for all 55 intents.
+#
+# Audit & Refinement Notes (Gemini 4 Argon - medium):
+#   - Excluded the untagged `pull-up-account` opening clause (`["customer_name", "account_id"]`)
+#     from `mandatory_slots` because `customer_name` is a synthetic dummy entity not
+#     annotated in ABCD's ground-truth `slot_tags` (and used in 97.1% of `pull-up-account`
+#     calls), ensuring mandatory CNF evaluation aligns strictly with benchmarked DST slots.
+#   - Expanded truncated OR-clauses in `refund_initiate` (`["full_address", "street_address", "account_id"]`
+#     for `enter-details`) and the 4 `manage_account` verification subflows (`["zip_code", "phone",
+#     "pin_number", "username", "email", "order_id"]` for 3-of-7 `verify-identity`) to match
+#     `guidelines.json` branching rules.
 #
 # Rationale: Raw ABCD defines slot requirements only at the atomic action level
 # in ontology.json, lacking an intent-level ground truth mapping customer intents
@@ -42,7 +53,6 @@ INTENT_SCHEMA_DATA = [
         "intent": "recover_username",
         "canonical_actions": ["pull-up-account", "verify-identity"],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["zip_code"],
             ["email", "phone"],
         ],
@@ -57,7 +67,6 @@ INTENT_SCHEMA_DATA = [
         "intent": "recover_password",
         "canonical_actions": ["pull-up-account", "enter-details", "make-password"],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
         ],
         "agent_action_slots": ["details_slotval"],
@@ -71,7 +80,6 @@ INTENT_SCHEMA_DATA = [
         "intent": "reset_2fa",
         "canonical_actions": ["pull-up-account", "enter-details", "send-link"],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["email"],
         ],
         "agent_action_slots": ["details_slotval"],
@@ -93,9 +101,7 @@ INTENT_SCHEMA_DATA = [
             "update-account",
             "offer-refund",
         ],
-        "mandatory_slots": [
-            ["customer_name", "account_id"],
-        ],
+        "mandatory_slots": [],
         "agent_action_slots": ["reason_slotval", "account_slotval", "amount"],
         "sop_summary": (
             "Customer inquires about unauthorized service added. Pull up account, record "
@@ -111,9 +117,7 @@ INTENT_SCHEMA_DATA = [
             "ask-the-oracle",
             "update-account",
         ],
-        "mandatory_slots": [
-            ["customer_name", "account_id"],
-        ],
+        "mandatory_slots": [],
         "agent_action_slots": ["reason_slotval", "account_slotval"],
         "sop_summary": (
             "Customer inquires about service removed. Pull up account, record reason, "
@@ -124,9 +128,7 @@ INTENT_SCHEMA_DATA = [
         "flow": "manage_account",
         "intent": "status_shipping_question",
         "canonical_actions": ["pull-up-account", "ask-the-oracle", "send-link"],
-        "mandatory_slots": [
-            ["customer_name", "account_id"],
-        ],
+        "mandatory_slots": [],
         "agent_action_slots": [],
         "sop_summary": (
             "Customer has general shipping status question on profile. Pull up account, "
@@ -142,9 +144,7 @@ INTENT_SCHEMA_DATA = [
             "ask-the-oracle",
             "promo-code",
         ],
-        "mandatory_slots": [
-            ["customer_name", "account_id"],
-        ],
+        "mandatory_slots": [],
         "agent_action_slots": ["reason_slotval"],
         "sop_summary": (
             "Customer states account credit is missing. Pull up account, record reason, "
@@ -161,9 +161,8 @@ INTENT_SCHEMA_DATA = [
             "update-account",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["street_address", "full_address"],
-            ["zip_code", "order_id"],
+            ["zip_code", "phone", "pin_number", "username", "email", "order_id"],
         ],
         "agent_action_slots": ["account_slotval"],
         "sop_summary": (
@@ -181,8 +180,7 @@ INTENT_SCHEMA_DATA = [
             "update-account",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
-            ["zip_code", "order_id"],
+            ["zip_code", "phone", "pin_number", "username", "email", "order_id"],
         ],
         "agent_action_slots": ["account_slotval"],
         "sop_summary": (
@@ -200,9 +198,8 @@ INTENT_SCHEMA_DATA = [
             "update-account",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["phone"],
-            ["zip_code", "order_id"],
+            ["zip_code", "pin_number", "username", "email", "order_id"],
         ],
         "agent_action_slots": ["account_slotval"],
         "sop_summary": (
@@ -220,9 +217,8 @@ INTENT_SCHEMA_DATA = [
             "update-account",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["payment_method"],
-            ["zip_code", "order_id"],
+            ["zip_code", "phone", "pin_number", "username", "email", "order_id"],
         ],
         "agent_action_slots": ["account_slotval"],
         "sop_summary": (
@@ -244,7 +240,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["membership_level", "order_slotval", "change_option"],
@@ -264,7 +259,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["shipping_option", "order_slotval"],
@@ -283,7 +277,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
             ["payment_method"],
         ],
@@ -304,7 +297,6 @@ INTENT_SCHEMA_DATA = [
             "offer-refund",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["shipping_option", "amount"],
@@ -324,7 +316,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": [
@@ -349,7 +340,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": [
@@ -374,7 +364,6 @@ INTENT_SCHEMA_DATA = [
             "make-purchase",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
             ["product", "name"],
         ],
@@ -395,7 +384,6 @@ INTENT_SCHEMA_DATA = [
             "offer-refund",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["shipping_option", "membership_level", "amount"],
@@ -418,11 +406,10 @@ INTENT_SCHEMA_DATA = [
             "offer-refund",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
-            ["full_address", "street_address"],
+            ["full_address", "street_address", "account_id"],
         ],
         "agent_action_slots": [
             "reason_slotval",
@@ -432,7 +419,7 @@ INTENT_SCHEMA_DATA = [
         ],
         "sop_summary": (
             "Customer initiates refund for defective item. Pull up account, validate purchase "
-            "with credentials and order ID, record return method, enter customer address, and offer refund."
+            "with credentials and order ID, record return method, enter customer address or account ID, and offer refund."
         ),
     },
     {
@@ -445,7 +432,6 @@ INTENT_SCHEMA_DATA = [
             "offer-refund",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -467,7 +453,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -489,7 +474,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -512,7 +496,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -535,7 +518,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -560,7 +542,6 @@ INTENT_SCHEMA_DATA = [
             "promo-code",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["reason_slotval"],
@@ -579,7 +560,6 @@ INTENT_SCHEMA_DATA = [
             "promo-code",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["reason_slotval"],
@@ -592,9 +572,7 @@ INTENT_SCHEMA_DATA = [
         "flow": "purchase_dispute",
         "intent": "out_of_stock_general",
         "canonical_actions": ["pull-up-account", "notify-team", "promo-code"],
-        "mandatory_slots": [
-            ["customer_name", "account_id"],
-        ],
+        "mandatory_slots": [],
         "agent_action_slots": ["company_team"],
         "sop_summary": (
             "Customer inquiring about out-of-stock inventory across catalog. Pull up account, "
@@ -611,7 +589,6 @@ INTENT_SCHEMA_DATA = [
             "make-purchase",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["product", "name"],
         ],
         "agent_action_slots": ["reason_slotval", "company_team"],
@@ -629,9 +606,7 @@ INTENT_SCHEMA_DATA = [
             "membership",
             "promo-code",
         ],
-        "mandatory_slots": [
-            ["customer_name", "account_id"],
-        ],
+        "mandatory_slots": [],
         "agent_action_slots": ["membership_level"],
         "sop_summary": (
             "Customer attempts to redeem invalid promo code. Pull up account, verify code validity "
@@ -647,9 +622,7 @@ INTENT_SCHEMA_DATA = [
             "membership",
             "promo-code",
         ],
-        "mandatory_slots": [
-            ["customer_name", "account_id"],
-        ],
+        "mandatory_slots": [],
         "agent_action_slots": ["membership_level"],
         "sop_summary": (
             "Customer promo code has expired. Pull up account, query oracle, verify member status, "
@@ -667,7 +640,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -693,7 +665,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -718,7 +689,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
             ["username"],
             ["email"],
@@ -739,7 +709,6 @@ INTENT_SCHEMA_DATA = [
             "update-order",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -761,7 +730,6 @@ INTENT_SCHEMA_DATA = [
             "make-purchase",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -785,7 +753,6 @@ INTENT_SCHEMA_DATA = [
             "offer-refund",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["username"],
             ["email"],
             ["order_id"],
@@ -904,7 +871,6 @@ INTENT_SCHEMA_DATA = [
             "enter-details",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["details_slotval"],
@@ -924,7 +890,6 @@ INTENT_SCHEMA_DATA = [
             "enter-details",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["details_slotval"],
@@ -944,7 +909,6 @@ INTENT_SCHEMA_DATA = [
             "enter-details",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["details_slotval"],
@@ -964,7 +928,6 @@ INTENT_SCHEMA_DATA = [
             "update-account",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
             ["payment_method", "amount"],
         ],
@@ -985,7 +948,6 @@ INTENT_SCHEMA_DATA = [
             "enter-details",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": [
@@ -1009,7 +971,6 @@ INTENT_SCHEMA_DATA = [
             "offer-refund",
         ],
         "mandatory_slots": [
-            ["customer_name", "account_id"],
             ["order_id"],
         ],
         "agent_action_slots": ["membership_level", "amount"],
