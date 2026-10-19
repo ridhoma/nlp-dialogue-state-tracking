@@ -118,11 +118,11 @@ def extract_dst_features_for_conversation(
         upfront_satisfied = evaluate_cnf_clauses(first_two_turns_slots, mandatory_clauses)
         upfront_slot_density = sum(upfront_satisfied) / num_mandatory
 
-        # Slot filling latency
+        # Slot filling latency (measured in number of dialogue turns elapsed)
         if all_mandatory_turn is not None and start_turn is not None:
             slot_filling_latency = float(all_mandatory_turn - start_turn)
         else:
-            # Impute latency to total turns if mandatory slots were never satisfied
+            # Impute latency to total turn count (N_turns) if mandatory slots were never satisfied
             fallback_turns = float(num_total_turns) if num_total_turns is not None else float(convo_slots_df["turn_id"].max() + 1 if not convo_slots_df.empty else 0)
             slot_filling_latency = fallback_turns
 
@@ -138,7 +138,6 @@ def extract_dst_features_for_conversation(
         "mandatory_slot_coverage": float(mandatory_slot_coverage),
         "all_mandatory_slots_filled": int(all_mandatory_filled),
         "slot_filling_latency": float(slot_filling_latency),
-        "slot_filling_turn": float(all_mandatory_turn) if all_mandatory_turn is not None else np.nan,
         "upfront_slot_density": float(upfront_slot_density),
         "unused_slot_ratio": float(unused_slot_ratio),
         "slot_repetition_count": int(slot_repetition_count),
