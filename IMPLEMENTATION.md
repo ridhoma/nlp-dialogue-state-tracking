@@ -155,12 +155,12 @@ The raw nested JSON was ingested, validated, and normalized into 5 relational ta
 
 In Conversation State Tracking (CST / DST), determining the ground-truth slot requirements for an intent is a foundational methodological decision. In the raw ABCD dataset, slot requirements are defined only at the atomic *action level* in `ontology.json` (e.g. `validate-purchase` requires `username`, `email`, `order_id`), but the benchmark provides no explicit relational table mapping high-level customer *intents* to required customer slots. 
 
-For this reason, an LLM-powered inferential approach was chosen to define what customer information *ought* to be collected for each intent. **Gemini 3.8 Flash - medium** was used as the inference agent to synthesize the Standard Operating Procedures (SOPs) governing each intent across three authoritative dataset files:
+For this reason, an LLM-powered inferential approach was chosen to define what customer information *ought* to be collected for each intent. **Gemini 3.8 Flash - medium** was initially used as the inference agent to synthesize the Standard Operating Procedures (SOPs) governing each intent, and **Gemini 4 Argon - medium** subsequently audited and refined `INTENT_SCHEMA_DATA` across three authoritative dataset files:
 1. `guidelines.json`: Human-written natural language SOP flowcharts and instructions describing prerequisite steps, authentication rules, and branching policies per subflow.
 2. `ontology.json`: Formal schema defining the 30 discrete system actions and their required input parameters.
 3. `kb.json`: Canonical action trajectories specifying the intended sequence of steps for all 55 intents.
 
-Inference agent is asked to directly make changes to the source code `intent_schema.py`. The variable `INTENT_SCHEMA_DATA` is the literal parsing outputs from the LLM, which is then transformed and saved as `intent_schema.parquet`.
+Inference agents directly maintain the source code `intent_schema.py` (with `Gemini 4 Argon - medium` removing untagged `customer_name` opening requirements and expanding truncated OR-clauses in `refund_initiate` and `manage_account` verification flows). The variable `INTENT_SCHEMA_DATA` contains the curated LLM schema outputs, which are transformed and saved as `intent_schema.parquet`.
 
 **Alternative Approach Considered:** An alternative approach would be empirical frequency aggregation from actual conversation logs to extract slot occurrence distributions per intent and apply a threshold (e.g. marking any slot present in $\ge 50\%$ of conversations for an intent as mandatory). However, given the availability of gold-standard SOP metadata, potential agent non-compliance in historical logs, and sample sparsity across rare intents, normative inference was chosen.
 
@@ -170,16 +170,15 @@ Inference agent is asked to directly make changes to the source code `intent_sch
 
 Customer-provided requirements are represented in **Conjunctive Normal Form (CNF)** as `list[list[str]]`:
 * **Outer List (Logical AND):** Every clause (inner list) represents an essential requirement that must be satisfied.
-* **Inner List (Logical OR):** Represents acceptable alternatives or disjunctions (e.g. `["customer_name", "account_id"]` for account pull-up, or `["street_address", "full_address"]` for shipping labels).
+* **Inner List (Logical OR):** Represents acceptable alternatives or disjunctions (e.g. `["full_address", "street_address", "account_id"]` for refund destination/method).
 
 ```python
 # Example: product_defect -> refund_initiate
 mandatory_slots = [
-    ["customer_name", "account_id"],   # Clause 1: Account identification (Name OR Account ID)
-    ["username"],                       # Clause 2: Purchase validation credential
-    ["email"],                          # Clause 3: Purchase validation contact
-    ["order_id"],                       # Clause 4: Target transaction identifier
-    ["full_address", "street_address"], # Clause 5: Return shipping destination
+    ["username"],                                    # Clause 1: Purchase validation credential
+    ["email"],                                       # Clause 2: Purchase validation contact
+    ["order_id"],                                    # Clause 3: Target transaction identifier
+    ["full_address", "street_address", "account_id"], # Clause 4: Refund destination (check/gift card address OR account credit/card ID)
 ]
 ```
 
@@ -204,7 +203,7 @@ To avoid confounding customer information collection with agent decision-making,
 
 | Slot Type | Data Structure | Role in Conversation | Examples |
 | :--- | :--- | :--- | :--- |
-| **`mandatory_slots`** | `list[list[str]]` (CNF) | Informational constraints customer *must* provide to proceed with SOP | `[["customer_name", "account_id"], ["order_id"]]` |
+| **`mandatory_slots`** | `list[list[str]]` (CNF) | Informational constraints customer *must* provide to proceed with SOP | `[["username"], ["email"], ["order_id"]]` |
 | **`agent_action_slots`** | `list[str]` (flat list) | Discrete operational parameters configured by agent when triggering system actions | `["order_slotval", "shipping_option", "membership_level"]` |
 | **`all_slots`** | `list[str]` (flat list) | Complete ordered union of all parameters accepted by the intent's canonical actions | $\bigcup_{a \in A_{\text{canonical}}} \text{required\_slots}(a)$ |
 
@@ -260,7 +259,7 @@ kb = abcd.load_kb()
 # 4. Load Normative Intent Slot Schemas (CNF mandatory slots & action parameters)
 df_all_intents = abcd.load_intent_slots()  # full 55 rows
 refund_schema = abcd.load_intent_slots(intent="refund_initiate")  # returns dict
-# refund_schema['mandatory_slots'] -> [['customer_name', 'account_id'], ['username'], ['email'], ['order_id'], ['full_address', 'street_address']]
+# refund_schema['mandatory_slots'] -> [['username'], ['email'], ['order_id'], ['full_address', 'street_address', 'account_id']]
 # refund_schema['agent_action_slots'] -> ['reason_slotval', 'refund_target', 'details_slotval', 'amount']
 # refund_schema['all_slots'] -> union of canonical action parameters
 
