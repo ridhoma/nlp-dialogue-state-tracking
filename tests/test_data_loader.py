@@ -114,8 +114,8 @@ def test_load_intent_slots_filter():
     assert isinstance(schema, dict)
     assert schema["flow"] == "product_defect"
     assert schema["intent"] == "refund_initiate"
-    assert schema["num_mandatory_slots"] == 5
-    assert len(schema["mandatory_slots"]) == 5
+    assert schema["num_mandatory_slots"] == 4
+    assert len(schema["mandatory_slots"]) == 4
 
     # Filter with as_df=True
     df_single = abcd.load_intent_slots(intent="refund_initiate", as_df=True)
@@ -139,18 +139,17 @@ def test_intent_slot_cnf_satisfaction():
     schema = abcd.load_intent_slots(intent="refund_initiate")
     mandatory = schema["mandatory_slots"]
 
-    # Customer provides account_id (alternative to customer_name), username, and order_id
+    # Customer provides username, order_id, and account_id (alternative to address in enter-details)
     extracted = {"account_id": "acc_123", "username": "alice", "order_id": "ord_999"}
     satisfied = [any(s in extracted for s in group) for group in mandatory]
 
-    # Group 0: ['customer_name', 'account_id'] -> True (matched account_id)
-    # Group 1: ['username'] -> True
-    # Group 2: ['email'] -> False
-    # Group 3: ['order_id'] -> True
-    # Group 4: ['full_address', 'street_address'] -> False
-    assert satisfied == [True, True, False, True, False]
+    # Group 0: ['username'] -> True
+    # Group 1: ['email'] -> False
+    # Group 2: ['order_id'] -> True
+    # Group 3: ['full_address', 'street_address', 'account_id'] -> True (matched account_id)
+    assert satisfied == [True, False, True, True]
     density = sum(satisfied) / len(mandatory)
-    assert round(density, 2) == 0.60
+    assert round(density, 2) == 0.75
 
 
 def test_intent_schema_ontology_validation(monkeypatch):

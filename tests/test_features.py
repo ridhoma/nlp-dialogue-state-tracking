@@ -91,7 +91,6 @@ def test_extract_dst_features_for_conversation():
     assert feat["all_mandatory_slots_filled"] == 1
     # Latency: start_turn is 2, all satisfied at turn 4 -> 4 - 2 = 2
     assert feat["slot_filling_latency"] == 2.0
-    assert feat["slot_filling_turn"] == 4.0
     # Both clauses satisfied in turns 2 and 4 (first 2 customer turns) -> 1.0
     assert feat["upfront_slot_density"] == 1.0
     # phone is irrelevant to all_slots ['username', 'order_id', 'email'] -> 1/3
@@ -119,7 +118,6 @@ def test_extract_dst_features_never_satisfied():
     assert feat["all_mandatory_slots_filled"] == 0
     assert feat["mandatory_slots_satisfied"] == 1
     assert feat["mandatory_slot_coverage"] == 0.5
-    assert np.isnan(feat["slot_filling_turn"])
     # Capped at total turns
     assert feat["slot_filling_latency"] == 8.0
 
@@ -148,6 +146,7 @@ def test_extract_dst_features_zero_mandatory_schema():
 
 
 def test_extract_ast_features_for_conversation():
+    # Terminal action 'select-faq' and any 'notify-team' are stripped to prevent target leakage
     actions_taken = ["search-faq", "search-pricing", "select-faq"]
     canonical_actions = ["search-faq", "search-pricing", "select-faq"]
 
@@ -157,20 +156,22 @@ def test_extract_ast_features_for_conversation():
         canonical_actions=canonical_actions,
     )
 
+    assert feat["num_actions_taken"] == 2
+    assert feat["num_canonical_actions"] == 2
     assert feat["sop_edit_distance_raw"] == 0
     assert feat["sop_edit_distance_norm"] == 0.0
     assert feat["action_thrashing_count"] == 0
     assert feat["action_count_ratio"] == 1.0
     assert feat["action_count_delta"] == 0
-    assert feat["reached_canonical_terminal"] == 1
-    assert feat["has_escalation"] == 0
+    assert "reached_canonical_terminal" not in feat
+    assert "has_escalation" not in feat
 
 
 def test_extract_ast_features_premature_action():
-    # Agent executes validate-purchase at turn 5, but order_id was only provided at turn 7
-    actions_taken = ["validate-purchase"]
-    canonical_actions = ["validate-purchase"]
-    action_turns_list = [(5, "validate-purchase")]
+    # Agent executes pre-terminal validate-purchase at turn 5, but order_id was only provided at turn 7
+    actions_taken = ["validate-purchase", "offer-refund"]
+    canonical_actions = ["validate-purchase", "offer-refund"]
+    action_turns_list = [(5, "validate-purchase"), (10, "offer-refund")]
     slots_timeline = [
         (2, ["username", "email"]),
         (7, ["order_id"]),
@@ -184,4 +185,34 @@ def test_extract_ast_features_premature_action():
         customer_slots_timeline=slots_timeline,
     )
 
+    # Only pre-terminal 'validate-purchase' is evaluated; terminal 'offer-refund' is excluded
     assert feat["premature_action_attempts"] == 1
+    assert feat["action_execution_latency_mean"] == 0.0
+
+
+def test_extract_ast_features_execution_latency_prereq_only():
+    # pull-up-account (turn 3) is not in A_prereq; ask-the-oracle (turn 15) is canonical_terminal
+    # validate-purchase (turn 8) has prerequisites satisfied at turn 6 -> latency = 8 - 6 = 2.0
+    actions_taken = ["pull-up-account", "validate-purchase", "ask-the-oracle"]
+    canonical_actions = ["pull-up-account", "validate-purchase", "ask-the-oracle"]
+    action_turns_list = [
+        (3, "pull-up-account"),
+        (8, "validate-purchase"),
+        (15, "ask-the-oracle"),
+    ]
+    slots_timeline = [
+        (2, ["username"]),
+        (4, ["email"]),
+        (6, ["order_id"]),
+    ]
+
+    feat = extract_ast_features_for_conversation(
+        convo_id=203,
+        actions_taken=actions_taken,
+        canonical_actions=canonical_actions,
+        action_turns_list=action_turns_list,
+        customer_slots_timeline=slots_timeline,
+    )
+
+    assert feat["premature_action_attempts"] == 0
+    assert feat["action_execution_latency_mean"] == 2.0
