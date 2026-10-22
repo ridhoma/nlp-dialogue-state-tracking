@@ -17,6 +17,7 @@ from data_science.features.dst import (
     extract_dst_features_batch,
     extract_dst_features_for_conversation,
 )
+from data_science.features.encodings import one_hot_encode
 
 __all__ = [
     "build_feature_matrix",
@@ -26,6 +27,7 @@ __all__ = [
     "extract_ast_features_for_conversation",
     "extract_dst_features_batch",
     "extract_dst_features_for_conversation",
+    "one_hot_encode",
     "save_feature_matrix",
     "token_levenshtein",
 ]
