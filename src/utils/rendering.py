@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import pandas as pd
-    from data_science.evaluation import MultiLabelEvaluationResult
+    from data_science.evaluations import MultiLabelEvaluationResult
 
 
 def render_evaluation_html(result: MultiLabelEvaluationResult) -> str:

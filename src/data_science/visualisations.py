@@ -30,6 +30,23 @@ ACADEMIC_PALETTE: list[str] = [
 ]
 
 
+def _compute_font_scale(
+    figsize: tuple[float, float],
+    ref_figsize: tuple[float, float],
+    exponent: float = 0.75,
+    min_scale: float = 0.55,
+    max_scale: float = 2.20,
+) -> float:
+    """
+    Compute a smooth dynamic font scaling factor relative to `ref_figsize` based on
+    the geometric mean of `(width, height)`. Returns exactly 1.0 at `ref_figsize`.
+    """
+    fig_geom = float(np.sqrt(max(figsize[0], 1.0) * max(figsize[1], 1.0)))
+    ref_geom = float(np.sqrt(ref_figsize[0] * ref_figsize[1]))
+    raw_scale = (fig_geom / ref_geom) ** exponent
+    return float(np.clip(raw_scale, min_scale, max_scale))
+
+
 def _coerce_inputs(
     x: pd.DataFrame | pd.Series | np.ndarray,
     x_columns: str | Sequence[str] | None,
@@ -457,20 +474,23 @@ def plot_distribution(
         subplot_h = 3.6
         figsize = (subplot_w * ncols, subplot_h * nrows)
 
+    # Dynamic font scaling anchored to reference figsize=(12.0, 6.0) -> f_scale = 1.0
+    f_scale = _compute_font_scale(figsize, ref_figsize=(12.0, 6.0))
+
     # Apply clean academic rcParams locally without mutating global user state
     academic_rc = {
         "axes.edgecolor": "#333333",
-        "axes.linewidth": 0.8,
+        "axes.linewidth": 0.45 * f_scale,
         "grid.color": "#CBD5E1",
         "grid.linestyle": "--",
-        "grid.linewidth": 0.6,
-        "font.size": 6.8,
-        "axes.titlesize": 7.8,
+        "grid.linewidth": 0.40 * f_scale,
+        "font.size": 6.8 * f_scale,
+        "axes.titlesize": 7.8 * f_scale,
         "axes.titleweight": "bold",
-        "axes.labelsize": 6.8,
-        "xtick.labelsize": 6.2,
-        "ytick.labelsize": 6.2,
-        "legend.fontsize": 6.0,
+        "axes.labelsize": 6.8 * f_scale,
+        "xtick.labelsize": 6.2 * f_scale,
+        "ytick.labelsize": 6.2 * f_scale,
+        "legend.fontsize": 6.0 * f_scale,
         "figure.facecolor": "white",
         "axes.facecolor": "white",
     }
@@ -602,7 +622,7 @@ def plot_distribution(
         if suptitle:
             fig.suptitle(
                 suptitle,
-                fontsize=10.5,
+                fontsize=9.0 * f_scale,
                 fontweight="bold",
                 color="#0F172A",
             )
@@ -621,6 +641,7 @@ def _style_r2_badge_and_axes(
     r2_val: float,
     r2_threshold: float,
     show_r: bool = False,
+    font_scale: float = 1.0,
 ) -> str:
     """
     Annotate subplot `ax` with a compact R^2 badge and highlight the subplot
@@ -641,7 +662,7 @@ def _style_r2_badge_and_axes(
         ax.set_facecolor("#FFF5F5")
         for spine in ("bottom", "left", "top", "right"):
             ax.spines[spine].set_color("#DC2626")
-            ax.spines[spine].set_linewidth(1.2)
+            ax.spines[spine].set_linewidth(0.75 * font_scale)
         line_color = "#B91C1C"
     elif not np.isnan(r2_val) and r2_val >= 0.25:
         # Moderate correlation highlight
@@ -665,14 +686,14 @@ def _style_r2_badge_and_axes(
         transform=ax.transAxes,
         ha="left",
         va="top",
-        fontsize=5.5,
+        fontsize=5.5 * font_scale,
         fontweight="bold" if (not np.isnan(r2_val) and r2_val >= r2_threshold) else "normal",
         color=text_color,
         bbox={
             "boxstyle": "round,pad=0.18",
             "facecolor": box_fc,
             "edgecolor": box_ec,
-            "linewidth": 0.6,
+            "linewidth": 0.40 * font_scale,
             "alpha": 0.90,
         },
         zorder=6,
@@ -694,6 +715,8 @@ def _plot_single_pair_scatter(
     jitter: float,
     rng: np.random.Generator,
     show_r: bool,
+    font_scale: float = 1.0,
+    marker_size: float = 11.0,
 ) -> None:
     """Plot a single square pairwise scatter subplot with highlighted R^2."""
     valid_full = df_full[[x_col, y_col]].dropna()
@@ -714,6 +737,7 @@ def _plot_single_pair_scatter(
         r2_val=r2_val,
         r2_threshold=r2_threshold,
         show_r=show_r,
+        font_scale=font_scale,
     )
 
     cols_needed = [x_col, y_col] + ([group_col] if group_col is not None else [])
@@ -730,15 +754,17 @@ def _plot_single_pair_scatter(
         x_pts += rng.normal(0.0, jitter * x_span, size=x_pts.size)
         y_pts += rng.normal(0.0, jitter * y_span, size=y_pts.size)
 
+    edge_lw = 0.22 * font_scale
+
     if group_col is None:
         ax.scatter(
             x_pts,
             y_pts,
-            s=14,
+            s=marker_size,
             color=ACADEMIC_PALETTE[1],
             alpha=0.55,
             edgecolors="white",
-            linewidths=0.25,
+            linewidths=edge_lw,
             rasterized=True,
             zorder=3,
         )
@@ -751,11 +777,11 @@ def _plot_single_pair_scatter(
             ax.scatter(
                 x_pts[mask],
                 y_pts[mask],
-                s=14,
+                s=marker_size,
                 color=color_map[g],
                 alpha=0.60,
                 edgecolors="white",
-                linewidths=0.25,
+                linewidths=edge_lw,
                 label=f"{group_col} = {g}",
                 rasterized=True,
                 zorder=3,
@@ -773,7 +799,7 @@ def _plot_single_pair_scatter(
                 y_line,
                 color=line_color,
                 linestyle="--",
-                linewidth=1.1,
+                linewidth=1.0 * font_scale,
                 alpha=0.85,
                 zorder=5,
             )
@@ -891,12 +917,17 @@ def plot_correlation_matrix(
         cell_size = 2.2 if n_dim <= 4 else (1.85 if n_dim <= 6 else 1.55)
         figsize = (cell_size * n_dim, cell_size * n_dim)
 
+    # Dynamic font and marker scaling anchored to reference figsize=(6.0, 6.0) -> f_scale = 1.0
+    f_scale = _compute_font_scale(figsize, ref_figsize=(6.0, 6.0))
+    cell_factor = float(np.clip(3.0 / max(n_dim, 1), 0.45, 1.25))
+    marker_size = 11.0 * (f_scale**2) * cell_factor
+
     academic_rc = {
         "axes.edgecolor": "#475569",
-        "axes.linewidth": 0.75,
-        "font.size": 6.0,
-        "axes.labelsize": 6.0,
-        "legend.fontsize": 6.0,
+        "axes.linewidth": 0.40 * f_scale,
+        "font.size": 6.0 * f_scale,
+        "axes.labelsize": 6.0 * f_scale,
+        "legend.fontsize": 6.0 * f_scale,
         "figure.facecolor": "white",
         "axes.facecolor": "white",
     }
@@ -936,6 +967,8 @@ def plot_correlation_matrix(
                     jitter=jitter,
                     rng=rng,
                     show_r=show_r,
+                    font_scale=f_scale,
+                    marker_size=marker_size,
                 )
 
                 # Remove all ticks and tick numbers; only the scatter shape & R^2 matter
@@ -947,7 +980,7 @@ def plot_correlation_matrix(
                 if c == 0:
                     ax.set_ylabel(
                         str(y_col),
-                        fontsize=5.8,
+                        fontsize=5.8 * f_scale,
                         color="#1E293B",
                         rotation=0 if n_dim >= 5 else 90,
                         ha="right" if n_dim >= 5 else "center",
@@ -960,7 +993,7 @@ def plot_correlation_matrix(
                 if r == n_dim - 1:
                     ax.set_xlabel(
                         str(x_col),
-                        fontsize=5.8,
+                        fontsize=5.8 * f_scale,
                         color="#1E293B",
                         rotation=25 if n_dim >= 5 else 0,
                         ha="right" if n_dim >= 5 else "center",
@@ -988,7 +1021,7 @@ def plot_correlation_matrix(
         if suptitle:
             fig.suptitle(
                 suptitle,
-                fontsize=8.5,
+                fontsize=8.5 * f_scale,
                 fontweight="bold",
                 color="#0F172A",
                 y=0.96,

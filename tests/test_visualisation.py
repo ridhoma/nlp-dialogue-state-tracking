@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from data_science.visualisation import plot_correlation_matrix, plot_distribution
+from data_science.visualisations import plot_correlation_matrix, plot_distribution
 
 matplotlib.use("Agg")
 

@@ -1,11 +1,11 @@
 """
-Unit tests for data_science.evaluation multi-label classification utilities.
+Unit tests for data_science.evaluations multi-label classification utilities.
 """
 
 import pandas as pd
 import pytest
 
-from data_science.evaluation import (
+from data_science.evaluations import (
     MultiLabelEvaluationResult,
     evaluate_multilabel,
 )
@@ -106,7 +106,7 @@ def test_evaluate_multilabel_drop_zero_support():
 
 def test_evaluation_multilabel_alias():
     """Verify evaluation_multilabel alias works identically."""
-    from data_science.evaluation import evaluation_multilabel
+    from data_science.evaluations import evaluation_multilabel
 
     y_true = [["A"], ["B"]]
     y_pred = [["A"], ["B"]]

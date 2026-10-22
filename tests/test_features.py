@@ -216,3 +216,34 @@ def test_extract_ast_features_execution_latency_prereq_only():
 
     assert feat["premature_action_attempts"] == 0
     assert feat["action_execution_latency_mean"] == 2.0
+
+
+def test_one_hot_encode():
+    from data_science.features.encodings import one_hot_encode
+
+    df = pd.DataFrame(
+        {
+            "convo_id": [1, 2, 3, 4],
+            "flow": ["order_issue", "product_defect", "order_issue", "account_access"],
+            "member_level": ["guest", "bronze", "silver", "gold"],
+        }
+    )
+
+    # Full encoding
+    df_full = one_hot_encode(df, columns=["flow", "member_level"])
+    assert "flow_order_issue" in df_full.columns
+    assert "member_level_guest" in df_full.columns
+    assert df_full["flow_order_issue"].tolist() == [1, 0, 1, 0]
+
+    # Reference category dropping (dummy-trap safe for OLS/Logit)
+    df_ols = one_hot_encode(
+        df,
+        columns=["flow", "member_level"],
+        drop_first=True,
+        reference_categories={"member_level": "guest"},
+        drop_original_columns=True,
+    )
+    assert "member_level_guest" not in df_ols.columns
+    assert "member_level_gold" in df_ols.columns
+    assert "flow" not in df_ols.columns
+    assert "member_level" not in df_ols.columns
