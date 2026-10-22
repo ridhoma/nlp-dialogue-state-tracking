@@ -8,10 +8,6 @@ from data_science.features.ast import (
     extract_ast_features_for_conversation,
     token_levenshtein,
 )
-from data_science.features.builder import (
-    build_feature_matrix,
-    save_feature_matrix,
-)
 from data_science.features.dst import (
     evaluate_cnf_clauses,
     extract_dst_features_batch,
@@ -20,7 +16,6 @@ from data_science.features.dst import (
 from data_science.features.encodings import one_hot_encode
 
 __all__ = [
-    "build_feature_matrix",
     "compute_action_thrashing",
     "evaluate_cnf_clauses",
     "extract_ast_features_batch",
@@ -28,6 +23,5 @@ __all__ = [
     "extract_dst_features_batch",
     "extract_dst_features_for_conversation",
     "one_hot_encode",
-    "save_feature_matrix",
     "token_levenshtein",
 ]
