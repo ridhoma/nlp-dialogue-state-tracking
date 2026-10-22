@@ -13,24 +13,35 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import pandas as pd
-    from data_science.evaluations import MultiLabelEvaluationResult
 
 
-def render_evaluation_html(result: MultiLabelEvaluationResult) -> str:
+def render_evaluation_html(
+    summary: pd.DataFrame,
+    per_label: pd.DataFrame,
+    num_samples: int,
+    num_classes: int,
+) -> str:
     """
-    Renders an interactive HTML dashboard for a MultiLabelEvaluationResult.
+    Renders an interactive HTML dashboard for multi-label classification evaluation metrics.
 
     Parameters
     ----------
-    result : MultiLabelEvaluationResult
-        The evaluation result containing summary and per-label metrics.
+    summary : pd.DataFrame
+        Aggregate summary metrics DataFrame with columns `['metric', 'value']`.
+    per_label : pd.DataFrame
+        Per-label breakdown DataFrame with columns `['label', 'support', 'predicted',
+        'tp', 'fp', 'fn', 'precision', 'recall', 'f1']`.
+    num_samples : int
+        Total number of evaluated instances/turns.
+    num_classes : int
+        Total number of distinct target classes evaluated.
 
     Returns
     -------
     str
         Full HTML string ready for Jupyter `_repr_html_()`.
     """
-    m_dict = result.to_dict()
+    m_dict = dict(zip(summary["metric"], summary["value"]))
 
     def _fmt(val: Any) -> str:
         if isinstance(val, float):
@@ -46,7 +57,7 @@ def render_evaluation_html(result: MultiLabelEvaluationResult) -> str:
     <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
         <div style="flex: 1; min-width: 130px; background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 10px 14px; text-align: center;">
             <div style="font-size: 11px; font-weight: 700; color: var(--eval-text-muted, #64748b); text-transform: uppercase;">Evaluated Turns</div>
-            <div style="font-size: 20px; font-weight: 800; color: var(--eval-text, #0f172a); margin-top: 2px;">{result.num_samples:,}</div>
+            <div style="font-size: 20px; font-weight: 800; color: var(--eval-text, #0f172a); margin-top: 2px;">{num_samples:,}</div>
         </div>
         <div style="flex: 1; min-width: 130px; background: rgba(59, 130, 246, 0.14); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
             <div style="font-size: 11px; font-weight: 700; color: #3b82f6; text-transform: uppercase;">Exact Match (Subset)</div>
@@ -69,7 +80,7 @@ def render_evaluation_html(result: MultiLabelEvaluationResult) -> str:
 
     # Format summary table
     summary_rows = []
-    for _, row in result.summary.iterrows():
+    for _, row in summary.iterrows():
         m_name = html.escape(str(row["metric"]))
         val = row["value"]
         val_disp = (
@@ -103,7 +114,7 @@ def render_evaluation_html(result: MultiLabelEvaluationResult) -> str:
 
     # Format per-label table
     label_rows = []
-    for _, row in result.per_label.iterrows():
+    for _, row in per_label.iterrows():
         lbl = html.escape(str(row["label"]))
         sup = int(row["support"])
         pred = int(row["predicted"])
@@ -202,7 +213,7 @@ def render_evaluation_html(result: MultiLabelEvaluationResult) -> str:
         </style>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--eval-border); padding-bottom: 10px;">
             <h3 style="margin: 0; font-size: 16px; color: var(--eval-text);">📊 Multi-Label Classification Evaluation</h3>
-            <span style="font-size: 12px; color: var(--eval-text-muted); background: var(--eval-card-bg); border: 1px solid var(--eval-border); padding: 3px 8px; border-radius: 6px;">{result.num_classes} distinct classes</span>
+            <span style="font-size: 12px; color: var(--eval-text-muted); background: var(--eval-card-bg); border: 1px solid var(--eval-border); padding: 3px 8px; border-radius: 6px;">{num_classes} distinct classes</span>
         </div>
         {kpi_cards}
         <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">

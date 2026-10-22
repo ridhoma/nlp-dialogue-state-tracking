@@ -87,9 +87,14 @@ class MultiLabelEvaluationResult:
 
     def _repr_html_(self) -> str:
         """Interactive HTML dashboard for Jupyter Notebooks."""
-        from utils.rendering import render_evaluation_html
+        from utils.renderings import render_evaluation_html
 
-        return render_evaluation_html(self)
+        return render_evaluation_html(
+            summary=self.summary,
+            per_label=self.per_label,
+            num_samples=self.num_samples,
+            num_classes=self.num_classes,
+        )
 
 
 

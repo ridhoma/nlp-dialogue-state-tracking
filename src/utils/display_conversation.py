@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-from utils.rendering import render_conversation_html
+from utils.renderings import render_conversation_html
 
 
 class ConversationView:
