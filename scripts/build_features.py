@@ -42,11 +42,10 @@ DST_SELECTED_FEATURES: list[str] = [
 ]
 
 AST_SELECTED_FEATURES: list[str] = [
-    "num_actions_taken",
     "num_canonical_actions",
+    "action_count_delta",
     "sop_edit_distance_norm",
     "action_thrashing_count",
-    "action_count_delta",
     "premature_action_attempts",
     "action_execution_latency_mean",
 ]
