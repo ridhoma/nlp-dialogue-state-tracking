@@ -9,6 +9,7 @@ Contains presentation logic, styles, and markup generators for:
 from __future__ import annotations
 
 import html
+import math
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -223,6 +224,222 @@ def render_evaluation_html(
             </div>
             <div>
                 <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--eval-text);">Per-Label Classification Breakdown (Ranked by Support)</h4>
+                {per_label_table}
+            </div>
+        </div>
+    </div>
+    """
+    return container
+
+
+def render_binary_evaluation_html(
+    summary: pd.DataFrame,
+    per_label: pd.DataFrame,
+    num_samples: int,
+    threshold: float = 0.5,
+) -> str:
+    """
+    Renders an interactive HTML dashboard for binary classification evaluation metrics.
+
+    Parameters
+    ----------
+    summary : pd.DataFrame
+        Aggregate summary metrics DataFrame with columns `['metric', 'value']`.
+    per_label : pd.DataFrame
+        Per-class breakdown DataFrame (`['label', 'support', 'predicted',
+        'tp', 'fp', 'fn', 'precision', 'recall', 'f1']`).
+    num_samples : int
+        Total number of evaluated instances.
+    threshold : float, default=0.5
+        Classification probability threshold used for binary predictions.
+
+    Returns
+    -------
+    str
+        Full HTML string ready for Jupyter `_repr_html_()`.
+    """
+    m_dict = dict(zip(summary["metric"], summary["value"]))
+
+    def _fmt_pct(val: Any) -> str:
+        if isinstance(val, (int, float)) and not math.isnan(val):
+            return f"{val:.1%}"
+        return "N/A"
+
+    def _fmt_dec(val: Any) -> str:
+        if isinstance(val, (int, float)) and not math.isnan(val):
+            return f"{val:.4f}"
+        return "N/A"
+
+    roc_auc = _fmt_dec(m_dict.get("roc_auc"))
+    pr_auc = _fmt_dec(m_dict.get("pr_auc"))
+    f1_pos = _fmt_pct(m_dict.get("f1", 0.0))
+    brier = _fmt_dec(m_dict.get("brier_score"))
+
+    kpi_cards = f"""
+    <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 130px; background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--eval-text-muted, #64748b); text-transform: uppercase;">Evaluated Samples</div>
+            <div style="font-size: 20px; font-weight: 800; color: var(--eval-text, #0f172a); margin-top: 2px;">{num_samples:,}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(59, 130, 246, 0.14); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #3b82f6; text-transform: uppercase;">ROC-AUC</div>
+            <div style="font-size: 20px; font-weight: 800; color: #2563eb; margin-top: 2px;">{roc_auc}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(168, 85, 247, 0.14); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #a855f7; text-transform: uppercase;">PR-AUC</div>
+            <div style="font-size: 20px; font-weight: 800; color: #9333ea; margin-top: 2px;">{pr_auc}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #10b981; text-transform: uppercase;">F1-Score</div>
+            <div style="font-size: 20px; font-weight: 800; color: #059669; margin-top: 2px;">{f1_pos}</div>
+        </div>
+        <div style="flex: 1; min-width: 130px; background: rgba(249, 115, 22, 0.14); border: 1px solid rgba(249, 115, 22, 0.35); border-radius: 8px; padding: 10px 14px; text-align: center;">
+            <div style="font-size: 11px; font-weight: 700; color: #f97316; text-transform: uppercase;">Brier Score</div>
+            <div style="font-size: 20px; font-weight: 800; color: #ea580c; margin-top: 2px;">{brier}</div>
+        </div>
+    </div>
+    """
+
+    summary_rows = []
+    for _, row in summary.iterrows():
+        m_name = html.escape(str(row["metric"]))
+        val = row["value"]
+        if val is None or (isinstance(val, (int, float)) and math.isnan(val)):
+            val_disp = "N/A"
+        elif m_name in {"accuracy", "precision", "recall", "f1", "specificity"}:
+            val_disp = f"{val:.1%}"
+        else:
+            val_disp = f"{val:.4f}"
+        summary_rows.append(
+            f"<tr style='border-bottom: 1px solid var(--eval-border, rgba(128,128,128,0.15));'>"
+            f"<td style='padding: 6px 12px; font-weight: 600; color: var(--eval-text, #1e293b);'>{m_name}</td>"
+            f"<td style='padding: 6px 12px; font-family: monospace; color: var(--eval-text, #1e293b);'>{val_disp}</td></tr>"
+        )
+
+    summary_table = f"""
+    <table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-bottom: 16px;">
+        <thead>
+            <tr style="background: var(--eval-table-header, rgba(128,128,128,0.08)); border-bottom: 2px solid var(--eval-border, rgba(128,128,128,0.2)); text-align: left; color: var(--eval-text, #1e293b);">
+                <th style="padding: 8px 12px;">Global Metric</th>
+                <th style="padding: 8px 12px;">Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {"".join(summary_rows)}
+        </tbody>
+    </table>
+    """
+
+    label_rows = []
+    for _, row in per_label.iterrows():
+        lbl = html.escape(str(row["label"]))
+        sup = int(row["support"])
+        pred = int(row["predicted"])
+        tp = int(row["tp"])
+        fp = int(row["fp"])
+        fn = int(row["fn"])
+        prec = f"{row['precision']:.1%}"
+        rec = f"{row['recall']:.1%}"
+        f1 = f"{row['f1']:.1%}"
+
+        f1_val = float(row["f1"])
+        bar_color = (
+            "#10b981"
+            if f1_val >= 0.75
+            else ("#f59e0b" if f1_val >= 0.4 else "#ef4444")
+        )
+        bar_pct = max(min(int(f1_val * 100), 100), 0)
+
+        f1_bar = f"""
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; width: 44px; color: var(--eval-text, #1e293b);">{f1}</span>
+            <div style="flex: 1; background: var(--eval-bar-track, rgba(128,128,128,0.2)); border-radius: 9999px; height: 6px; overflow: hidden; min-width: 60px;">
+                <div style="background: {bar_color}; width: {bar_pct}%; height: 100%;"></div>
+            </div>
+        </div>
+        """
+
+        label_rows.append(f"""
+        <tr style="border-bottom: 1px solid var(--eval-border, rgba(128,128,128,0.15));">
+            <td style="padding: 6px 10px; font-weight: 600; font-family: monospace; color: var(--eval-text, #1e293b);">{lbl}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text-muted, #64748b);">{sup:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text-muted, #64748b);">{pred:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: #10b981; font-weight: 600;">{tp:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: #ef4444;">{fp:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: #f59e0b;">{fn:,}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text, #1e293b);">{prec}</td>
+            <td style="padding: 6px 10px; text-align: right; color: var(--eval-text, #1e293b);">{rec}</td>
+            <td style="padding: 6px 10px; min-width: 140px;">{f1_bar}</td>
+        </tr>
+        """)
+
+    per_label_table = f"""
+    <div style="border: 1px solid var(--eval-border, rgba(128,128,128,0.2)); border-radius: 6px;">
+        <table style="border-collapse: collapse; width: 100%; font-size: 12px; text-align: left;">
+            <thead style="background: var(--eval-table-header, rgba(128,128,128,0.08)); border-bottom: 2px solid var(--eval-border, rgba(128,128,128,0.2)); color: var(--eval-text, #1e293b);">
+                <tr>
+                    <th style="padding: 8px 10px;">Class</th>
+                    <th style="padding: 8px 10px; text-align: right;">Support</th>
+                    <th style="padding: 8px 10px; text-align: right;">Pred</th>
+                    <th style="padding: 8px 10px; text-align: right;">TP</th>
+                    <th style="padding: 8px 10px; text-align: right;">FP</th>
+                    <th style="padding: 8px 10px; text-align: right;">FN</th>
+                    <th style="padding: 8px 10px; text-align: right;">Precision</th>
+                    <th style="padding: 8px 10px; text-align: right;">Recall</th>
+                    <th style="padding: 8px 10px;">F1-Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {"".join(label_rows)}
+            </tbody>
+        </table>
+    </div>
+    """
+
+    container = f"""
+    <div class="ds-eval-dashboard" style="
+        --eval-bg: var(--jp-layout-color1, var(--vscode-editor-background, #ffffff));
+        --eval-card-bg: var(--jp-layout-color2, rgba(128, 128, 128, 0.05));
+        --eval-text: var(--jp-content-font-color1, var(--vscode-editor-foreground, #0f172a));
+        --eval-text-muted: var(--jp-content-font-color2, #64748b);
+        --eval-border: var(--jp-border-color1, rgba(128, 128, 128, 0.18));
+        --eval-table-header: rgba(128, 128, 128, 0.08);
+        --eval-bar-track: rgba(128, 128, 128, 0.15);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        border: 1px solid var(--eval-border);
+        border-radius: 10px;
+        padding: 18px;
+        max-width: 900px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06);
+        background: var(--eval-bg);
+        color: var(--eval-text);
+        margin: 12px 0;
+    ">
+        <style>
+            @media (prefers-color-scheme: dark) {{
+                .ds-eval-dashboard {{
+                    --eval-bg: #1e1e2e !important;
+                    --eval-card-bg: rgba(255, 255, 255, 0.04) !important;
+                    --eval-text: #f1f5f9 !important;
+                    --eval-text-muted: #94a3b8 !important;
+                    --eval-border: rgba(255, 255, 255, 0.12) !important;
+                    --eval-table-header: rgba(255, 255, 255, 0.06) !important;
+                    --eval-bar-track: rgba(255, 255, 255, 0.1) !important;
+                }}
+            }}
+        </style>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--eval-border); padding-bottom: 10px;">
+            <h3 style="margin: 0; font-size: 16px; color: var(--eval-text);">📊 Binary Classification Evaluation</h3>
+            <span style="font-size: 12px; color: var(--eval-text-muted); background: var(--eval-card-bg); border: 1px solid var(--eval-border); padding: 3px 8px; border-radius: 6px;">threshold = {threshold:.2f}</span>
+        </div>
+        {kpi_cards}
+        <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+            <div>
+                <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--eval-text);">Aggregate Performance</h4>
+                {summary_table}
+            </div>
+            <div>
+                <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--eval-text);">Per-Class Breakdown</h4>
                 {per_label_table}
             </div>
         </div>
