@@ -203,6 +203,7 @@ def extract_ast_features_for_conversation(
         "convo_id": convo_id,
         "num_actions_taken": int(num_actions),
         "num_canonical_actions": int(num_canonical),
+        "is_optimal_depth_2_or_3": int(num_canonical in (2, 3)),
         "sop_edit_distance_raw": int(raw_edit),
         "sop_edit_distance_norm": float(norm_edit),
         "action_thrashing_count": int(thrashing_count),
