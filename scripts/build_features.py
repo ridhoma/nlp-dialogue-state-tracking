@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # Curated feature subsets from notebooks/02_feature_engineering.ipynb
 DST_SELECTED_FEATURES: list[str] = [
-    "mandatory_slot_coverage",
+    # "mandatory_slot_coverage", -- removed in v02
     "all_mandatory_slots_filled",
     "unused_slot_ratio",
     "slot_filling_latency",
