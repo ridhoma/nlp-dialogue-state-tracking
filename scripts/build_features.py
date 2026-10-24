@@ -42,7 +42,7 @@ DST_SELECTED_FEATURES: list[str] = [
 ]
 
 AST_SELECTED_FEATURES: list[str] = [
-    "num_canonical_actions",
+    "is_optimal_depth_2_or_3", # added in v03 replacing num_canonical_actions
     "action_count_delta",
     "sop_edit_distance_norm",
     "action_thrashing_count",
@@ -114,7 +114,11 @@ def assemble_feature_dataset(
     """
     df_context = build_context_features(df_convos, encoding=encoding)
     df_dst_sub = df_dst[["convo_id", *dst_features]]
-    df_ast_sub = df_ast[["convo_id", *ast_features]]
+    df_ast_work = df_ast.copy()
+    if "is_optimal_depth_2_or_3" in ast_features and "is_optimal_depth_2_or_3" not in df_ast_work.columns:
+        if "num_canonical_actions" in df_ast_work.columns:
+            df_ast_work["is_optimal_depth_2_or_3"] = df_ast_work["num_canonical_actions"].isin([2, 3]).astype(int)
+    df_ast_sub = df_ast_work[["convo_id", *ast_features]]
 
     return (
         df_context.merge(df_dst_sub, how="inner", on="convo_id")
