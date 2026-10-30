@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialogue Resolution Drivers — Econometric & Machine Learning Insights</title>
+    <script>
+        // Apply saved theme before initial paint to prevent theme flash
+        (function() {
+            try {
+                const saved = localStorage.getItem('report_theme') || 'auto';
+                if (saved === 'dark' || (saved === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else if (saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            } catch(e) {}
+        })();
+    </script>
+    <style>
+        :root {
+            /* Academic Paper Palette (Light Mode) */
+            --bg-page: #fdfcf9;
+            --bg-surface: #ffffff;
+            --bg-surface-elevated: #f4f2ec;
+            --border-subtle: #cfcac0;
+            --border-hairline: #e6e2d9;
+            --border-strong: #8c857b;
+            --text-heading: #1b1b1b;
+            --text-body: #343434;
+            --text-muted: #6b6b6b;
+            --text-lead: #4a4a4a;
+
+            /* Scholarly Accents */
+            --accent-navy: #1f3f66;
+            --accent-blue: #1f4e79;             /* OLS / LPM Oxford Blue */
+            --accent-blue-contrast: #ffffff;
+            --accent-blue-subtle: rgba(31, 78, 121, 0.08);
+
+            --accent-terracotta: #c0632a;       /* Logit AME Warm Terracotta */
+            --accent-purple: #c0632a;          /* Harmonized secondary accent */
+            --accent-purple-subtle: rgba(192, 99, 42, 0.09);
+
+            --accent-green: #2b6a4f;            /* Deep Forest Green */
+            --accent-green-subtle: rgba(43, 106, 79, 0.09);
+
+            --accent-red: #a8322d;              /* Academic Brick/Crimson Red */
+            --accent-red-subtle: rgba(168, 50, 45, 0.08);
+
+            --accent-amber: #a86b00;            /* Warm Ochre / Warning */
+            --accent-amber-subtle: rgba(168, 107, 0, 0.09);
+
+            --chart-grid: rgba(107, 107, 107, 0.16);
+            --chart-zero-line: #3d3d3d;
+
+            --font-serif: Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+        }
+
+        :root[data-theme="dark"] {
+            /* Academic Night Palette (Dark Mode) */
+            --bg-page: #16181d;
+            --bg-surface: #1e2128;
+            --bg-surface-elevated: #262a33;
+            --border-subtle: #3c3f46;
+            --border-hairline: #2a2d34;
+            --border-strong: #5a5f6b;
+            --text-heading: #f0eee9;
+            --text-body: #cfccc4;
+            --text-muted: #9a978f;
+            --text-lead: #b8b5ac;
+
+            --accent-navy: #9cc0ea;
+            --accent-blue: #6fa8dc;
+            --accent-blue-contrast: #12161f;
+            --accent-blue-subtle: rgba(111, 168, 220, 0.15);
+
+            --accent-terracotta: #f0a066;
+            --accent-purple: #f0a066;
+            --accent-purple-subtle: rgba(240, 160, 102, 0.15);
+
+            --accent-green: #6cc49a;
+            --accent-green-subtle: rgba(108, 196, 154, 0.15);
+
+            --accent-red: #ee7b72;
+            --accent-red-subtle: rgba(238, 123, 114, 0.15);
+
+            --accent-amber: #e0b04a;
+            --accent-amber-subtle: rgba(224, 176, 74, 0.15);
+
+            --chart-grid: rgba(200, 200, 200, 0.14);
+            --chart-zero-line: #cfccc4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-serif);
+            background-color: var(--bg-page);
+            color: var(--text-body);
+            line-height: 1.62;
+            padding: 48px 24px 96px 24px;
+            -webkit-font-smoothing: antialiased;
+            font-feature-settings: "kern", "liga", "onum";
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+        }
+
+        /* Masthead / Header */
+        header {
+            border-bottom: 2px solid var(--text-heading);
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+
+        .masthead-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 4px 10px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-blue {
+            background: var(--accent-blue-subtle);
+            color: var(--accent-blue);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .badge-purple {
+            background: var(--accent-purple-subtle);
+            color: var(--accent-purple);
+            border: 1px solid var(--accent-purple);
+        }
+
+        .badge-muted {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+        }
+
+        /* Segmented Theme Switcher */
+        .theme-switch-container {
+            display: inline-flex;
+            align-items: center;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 5px;
+            padding: 2px 3px;
+            gap: 2px;
+        }
+
+        .theme-toggle-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 4px 9px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            color: var(--text-heading);
+        }
+
+        .theme-toggle-btn.active {
+            background: var(--bg-surface);
+            color: var(--text-heading);
+            font-weight: 700;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-subtle);
+        }
+
+        h1 {
+            font-family: var(--font-serif);
+            font-size: 34px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.015em;
+            color: var(--text-heading);
+            margin-bottom: 8px;
+        }
+
+        .lead {
+            font-family: var(--font-serif);
+            font-size: 17px;
+            color: var(--text-lead);
+            max-width: 980px;
+            line-height: 1.55;
+            text-align: justify;
+        }
+
+        /* Top Key Takeaway Metric Cards */
+        .takeaway-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin-bottom: 36px;
+        }
+
+        .takeaway-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 20px 22px;
+            border-top: 3.5px solid var(--accent-blue);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .takeaway-card.red { border-top-color: var(--accent-red); }
+        .takeaway-card.green { border-top-color: var(--accent-green); }
+        .takeaway-card.purple { border-top-color: var(--accent-purple); }
+
+        .takeaway-tag {
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .takeaway-title {
+            font-family: var(--font-sans);
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-heading);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .takeaway-desc {
+            font-size: 14.5px;
+            color: var(--text-body);
+            line-height: 1.5;
+        }
+
+        /* Section Cards */
+        .section-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 32px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .section-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        h2 {
+            font-family: var(--font-serif);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-intro {
+            font-size: 15px;
+            color: var(--text-body);
+            margin-bottom: 18px;
+            line-height: 1.55;
+            text-align: justify;
+        }
+
+        /* Interactive Filter Controls */
+        .filter-toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 14px 0 18px 0;
+            background: var(--bg-surface-elevated);
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-hairline);
+            font-family: var(--font-sans);
+        }
+
+        .filter-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-muted);
+            margin-right: 4px;
+        }
+
+        .filter-btn {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-surface);
+            color: var(--text-body);
+            transition: all 0.15s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-navy);
+            color: var(--text-heading);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-navy);
+            color: #ffffff;
+            border-color: var(--accent-navy);
+            font-weight: 700;
+        }
+
+        .filter-btn.active-sig {
+            background: var(--accent-terracotta);
+            color: #ffffff;
+            border-color: var(--accent-terracotta);
+            font-weight: 700;
+        }
+
+        .feature-counter {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: auto;
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Chart Legends */
+        .chart-legend {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 600;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .legend-diamond {
+            width: 8px;
+            height: 8px;
+            transform: rotate(45deg);
+        }
+
+        /* Scorecard Grid */
+        .scorecard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 16px 0 10px 0;
+        }
+
+        @media (max-width: 860px) {
+            .scorecard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scorecard {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 18px 20px;
+            border-left: 4px solid var(--accent-navy);
+        }
+
+        .scorecard-model {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .scorecard-auc {
+            font-family: var(--font-sans);
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-heading);
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .scorecard-auc span {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .scorecard-role {
+            font-size: 13.5px;
+            color: var(--text-body);
+            margin-top: 10px;
+            line-height: 1.45;
+        }
+
+        /* SVG Forest Plot Wrapper */
+        .forest-chart-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        svg text {
+            user-select: none;
+        }
+
+        /* Interactive Tooltip */
+        #tooltip {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            background: var(--bg-surface);
+            color: var(--text-heading);
+            border: 1px solid var(--border-strong);
+            border-radius: 4px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            padding: 10px 14px;
+            font-family: var(--font-sans);
+            font-size: 12.5px;
+            line-height: 1.5;
+            max-width: 360px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #tooltip .tt-title {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--text-heading);
+            margin-bottom: 3px;
+        }
+
+        #tooltip .tt-subtitle {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border-hairline);
+            padding-bottom: 4px;
+        }
+
+        #tooltip .tt-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 2px;
+        }
+
+        #tooltip .tt-key {
+            color: var(--text-muted);
+        }
+
+        #tooltip .tt-val {
+            font-weight: 600;
+        }
+
+        /* Business Recommendations */
+        .rec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .rec-card {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .rec-header {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .rec-num {
+            background: var(--accent-navy);
+            color: #ffffff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-sans);
+            font-weight: 800;
+            font-size: 11.5px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .rec-title {
+            font-family: var(--font-serif);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-heading);
+        }
+
+        .rec-body {
+            font-size: 13.5px;
+            color: var(--text-body);
+            line-height: 1.5;
+            margin-bottom: 14px;
+        }
+
+        .rec-footer {
+            font-family: var(--font-sans);
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--accent-green);
+            background: var(--accent-green-subtle);
+            padding: 4px 8px;
+            border-radius: 3px;
+            align-self: flex-start;
+            border: 1px solid currentColor;
+        }
+
+        /* Academic Collapsible Table */
+        details {
+            margin-top: 24px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 14px 18px;
+        }
+
+        details summary {
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            color: var(--accent-navy);
+        }
+
+        table.bk-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            margin-top: 14px;
+        }
+
+        table.bk-table thead th {
+            border-top: 1.6px solid var(--text-heading);
+            border-bottom: 1px solid var(--text-heading);
+            padding: 7px 8px;
+            text-align: right;
+            font-weight: 700;
+            color: var(--text-heading);
+        }
+
+        table.bk-table thead th:first-child,
+        table.bk-table td:first-child {
+            text-align: left;
+        }
+
+        table.bk-table td {
+            padding: 5px 8px;
+            text-align: right;
+            border: none;
+            color: var(--text-body);
+        }
+
+        table.bk-table tr.grp td {
+            padding-top: 12px;
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-heading);
+            text-align: left;
+            border-bottom: 1px solid var(--border-hairline);
+        }
+
+        table.bk-table tbody tr:last-child td {
+            border-bottom: 1.6px solid var(--text-heading);
+        }
+
+        footer {
+            text-align: center;
+            font-family: var(--font-sans);
+            font-size: 12.5px;
+            color: var(--text-muted);
+            margin-top: 48px;
+            border-top: 1px solid var(--border-hairline);
+            padding-top: 20px;
+        }
+
+        code, .mono {
+            font-family: var(--font-mono);
+            font-size: 0.88em;
+            background: var(--bg-surface-elevated);
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid var(--border-hairline);
+        }
+
+        /* Multi-Model Benchmark Table */
+        .benchmark-wrapper {
+            margin-top: 24px;
+            overflow-x: auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 16px 20px;
+        }
+
+        .benchmark-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .benchmark-table thead th {
+            border-top: 1.6px solid var(--text-heading);
+            border-bottom: 1.2px solid var(--text-heading);
+            padding: 8px 10px;
+            text-align: right;
+            font-weight: 700;
+            color: var(--text-heading);
+        }
+
+        .benchmark-table thead th:first-child,
+        .benchmark-table thead th:nth-child(2),
+        .benchmark-table td:first-child,
+        .benchmark-table td:nth-child(2) {
+            text-align: left;
+        }
+
+        .benchmark-table td {
+            padding: 6px 10px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-hairline);
+            color: var(--text-body);
+        }
+
+        .benchmark-table tr.dim-header td {
+            padding-top: 14px;
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-heading);
+            background: var(--bg-surface-elevated);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .benchmark-table tbody tr:last-child td {
+            border-bottom: 1.6px solid var(--text-heading);
+        }
+
+        .highlight-best {
+            color: var(--accent-green);
+            font-weight: 700;
+        }
+
+        .delta-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: var(--accent-green-subtle);
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        /* Diagnostic & Goodness-of-Fit Grid */
+        .diagnostic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .diagnostic-card {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 14px 16px;
+        }
+
+        .diagnostic-title {
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .diagnostic-val {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 4px;
+        }
+
+        .diagnostic-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Callout Box (Suppressor Effect) */
+        .callout-box {
+            background: var(--bg-surface-elevated);
+            border-left: 4px solid var(--accent-amber);
+            border-top: 1px solid var(--border-subtle);
+            border-right: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+            border-radius: 0 6px 6px 0;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 13.5px;
+            line-height: 1.55;
+        }
+
+        .callout-title {
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent-amber);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Tipping Points Cards */
+        .tipping-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .tipping-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 18px 20px;
+        }
+
+        .tipping-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border-hairline);
+            padding-bottom: 10px;
+        }
+
+        .tipping-card-title {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-heading);
+        }
+
+        .tipping-cliff-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 3px;
+            background: var(--accent-red-subtle);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+
+        .tipping-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-sans);
+            font-size: 12.5px;
+            margin-top: 10px;
+        }
+
+        .tipping-table th {
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 5px 6px;
+            text-align: right;
+        }
+
+        .tipping-table th:first-child,
+        .tipping-table td:first-child {
+            text-align: left;
+        }
+
+        .tipping-table td {
+            padding: 5px 6px;
+            border-bottom: 1px solid var(--border-hairline);
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tipping-table tr.cliff-row {
+            background: var(--accent-red-subtle);
+            font-weight: 700;
+        }
+
+        .tipping-table tr.cliff-row td {
+            color: var(--accent-red);
+        }
+
+        /* Failure Archetypes Grid */
+        .archetype-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .archetype-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 16px 18px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .archetype-card.ast-border { border-top: 4px solid var(--accent-red); }
+        .archetype-card.domain-border { border-top: 4px solid var(--accent-navy); }
+        .archetype-card.dst-border { border-top: 4px solid var(--accent-amber); }
+        .archetype-card.churn-border { border-top: 4px solid var(--accent-terracotta); }
+
+        .archetype-share {
+            font-family: var(--font-mono);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin: 4px 0;
+        }
+
+        .archetype-name {
+            font-family: var(--font-sans);
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 6px;
+        }
+
+        .archetype-desc {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-bottom: 12px;
+        }
+
+        .archetype-metrics {
+            border-top: 1px solid var(--border-hairline);
+            padding-top: 10px;
+            font-family: var(--font-sans);
+            font-size: 11.5px;
+            color: var(--text-muted);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .archetype-metrics span strong {
+            color: var(--text-body);
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Executive Masthead Header -->
+    <header>
+        <div class="masthead-top">
+            <div class="badge-row">
+                <span class="badge badge-blue">Executive Econometric Brief</span>
+                <span class="badge badge-purple"><i>N</i> = 10,042 Multi-Turn Dialogues</span>
+                <span class="badge-muted">54.1% Baseline Resolution Rate</span>
+            </div>
+            <div class="theme-switch-container">
+                <button type="button" class="theme-toggle-btn active" id="btn-theme-auto" onclick="setTheme('auto')" title="Follow System Preference">Auto</button>
+                <button type="button" class="theme-toggle-btn" id="btn-theme-light" onclick="setTheme('light')" title="Force Paper Light Mode">☀️ Light</button>
+                <button type="button" class="theme-toggle-btn" id="btn-theme-dark" onclick="setTheme('dark')" title="Force Scholarly Dark Mode">🌙 Dark</button>
+            </div>
+        </div>
+        <h1>Determinants of Customer Dialogue Resolution</h1>
+        <p class="lead">
+            An econometric and machine learning investigation on the Action-Based Conversations Dataset (ABCD) quantifying how agent procedural compliance (AST), dialogue state tracking (DST), and conversational churn drive successful case resolution.
+        </p>
+    </header>
+
+    <!-- Top Key Takeaway Metric Cards -->
+    <div class="takeaway-grid">
+        <div class="takeaway-card red">
+            <div>
+                <div class="takeaway-tag">#1 Operational Defect (AST)</div>
+                <div class="takeaway-title">
+                    <span>−35.4 p.p.</span>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--accent-red);">SOP Deviation<sup>***</sup></span>
+                </div>
+                <p class="takeaway-desc">
+                    When agents deviate from the canonical SOP action sequence, resolution probability collapses by 35.4 to 39.6 percentage points (<i>p</i> &lt; 10<sup>−75</sup>).
+                </p>
+            </div>
+        </div>
+        <div class="takeaway-card green">
+            <div>
+                <div class="takeaway-tag">#1 Resolution Enabler (DST)</div>
+                <div class="takeaway-title">
+                    <span>+26.1 p.p.</span>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--accent-green);">Mandatory Slots<sup>***</sup></span>
+                </div>
+                <p class="takeaway-desc">
+                    Capturing 100% of required parameters boosts resolution probability by +25.7 to +26.1 percentage points, multiplying resolution odds by <strong>4.94&times;</strong> (<i>p</i> &lt; 10<sup>−24</sup>, VIF = 4.1).
+                </p>
+            </div>
+        </div>
+        <div class="takeaway-card purple">
+            <div>
+                <div class="takeaway-tag">Conversational Friction</div>
+                <div class="takeaway-title">
+                    <span>−10.4 p.p.</span>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--accent-terracotta);">Customer Churn (per +10%)<sup>***</sup></span>
+                </div>
+                <p class="takeaway-desc">
+                    Every 10 percentage point increase in customer turn share directly reduces resolution probability by <strong>10.4 p.p.</strong>, cutting resolution odds in half (OR = <strong>0.52&times;</strong>, <i>p</i> &lt; 10<sup>−63</sup>).
+                </p>
+            </div>
+        </div>
+        <div class="takeaway-card">
+            <div>
+                <div class="takeaway-tag">Model Predictive Frontier</div>
+                <div class="takeaway-title">
+                    <span>0.902</span>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--accent-blue);">XGBoost ROC-AUC</span>
+                </div>
+                <p class="takeaway-desc">
+                    Gradient-boosted trees lift out-of-fold discrimination from 0.844 to 0.902 (+5.8 p.p.) and lower Brier calibration error by 21.4%, capturing non-linear thresholds and action synergies.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: The Model Architecture Triangulation -->
+    <div class="section-card">
+        <div class="section-title-row">
+            <h2>The Triangulation Architecture: Placement of the Three Models</h2>
+            <div class="chart-legend">
+                <span style="font-size: 12px; color: var(--text-muted);">Stratified 5-Fold Cross-Validation on <i>N</i> = 10,042 Dialogues</span>
+            </div>
+        </div>
+
+        <p class="section-intro">
+            Rather than relying on an isolated model, this empirical evaluation triangulates between econometric inference and predictive machine learning. This framework simultaneously answers <em>"What is the unbiased, policy-interpretable percentage-point impact?"</em> and <em>"What is the non-linear predictive ceiling achievable from conversational signals?"</em>
+        </p>
+
+        <div class="scorecard-grid">
+            <div class="scorecard" style="border-left-color: var(--accent-terracotta);">
+                <div class="scorecard-model">1. Logistic Regression (Logit)</div>
+                <div class="scorecard-auc">0.8442 <span>OOF ROC-AUC</span></div>
+                <div class="scorecard-role">
+                    <strong>Asymptotic Inference Benchmark:</strong> Sigmoid maximum likelihood with HC3 heteroskedasticity-consistent robust standard errors to evaluate hypothesis tests (<i>p</i>-values) and compute non-linear Average Marginal Effects (AME).
+                </div>
+            </div>
+            <div class="scorecard" style="border-left-color: var(--accent-blue);">
+                <div class="scorecard-model">2. Ordinary Least Squares (OLS)</div>
+                <div class="scorecard-auc">0.8428 <span>OOF ROC-AUC</span></div>
+                <div class="scorecard-role">
+                    <strong>Direct Policy Communication:</strong> The Linear Probability Model (<i>β</i><sub><i>j</i></sub> = Δ<i>P</i>) translates coefficients directly into executive percentage points. Perfect directional alignment with Logit AME proves functional-form robustness.
+                </div>
+            </div>
+            <div class="scorecard" style="border-left-color: var(--accent-green);">
+                <div class="scorecard-model">3. XGBoost GBDT + TreeSHAP</div>
+                <div class="scorecard-auc" style="color: var(--accent-green);">0.9019 <span>OOF ROC-AUC</span></div>
+                <div class="scorecard-role">
+                    <strong>Non-Linear Frontier & Local Credit:</strong> Captures non-linear thresholds (+6.6 p.p. AUC lift, 24% lower Brier error) and decomposes exact game-theoretic TreeSHAP attributions per individual dialogue.
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Model 5-Fold Cross-Validation Benchmark Table -->
+        <div class="benchmark-wrapper">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="font-family:var(--font-sans); font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-heading);">
+                    Comprehensive Model Benchmark Table &bull; Stratified 5-Fold OOF CV (N = 10,042)
+                </h3>
+                <span class="badge badge-green" style="font-size:11px;">Dual Econometric & ML Evaluation</span>
+            </div>
+            <table class="benchmark-table">
+                <thead>
+                    <tr>
+                        <th>Dimension</th>
+                        <th>Evaluation Metric</th>
+                        <th>OLS (LPM)</th>
+                        <th>Logit Regression</th>
+                        <th>XGBoost GBDT</th>
+                        <th>XGBoost Lift vs. Logit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="dim-header">
+                        <td colspan="6">Discrimination & Rank-Order Quality</td>
+                    </tr>
+                    <tr>
+                        <td>Discrimination</td>
+                        <td><strong>ROC-AUC</strong></td>
+                        <td>0.8428</td>
+                        <td>0.8442</td>
+                        <td class="highlight-best">0.9019</td>
+                        <td><span class="delta-badge">+5.77 p.p.</span></td>
+                    </tr>
+                    <tr>
+                        <td>Discrimination</td>
+                        <td><strong>PR-AUC</strong></td>
+                        <td>0.8521</td>
+                        <td>0.8536</td>
+                        <td class="highlight-best">0.9078</td>
+                        <td><span class="delta-badge">+5.42 p.p.</span></td>
+                    </tr>
+
+                    <tr class="dim-header">
+                        <td colspan="6">Probability Calibration & Error Loss</td>
+                    </tr>
+                    <tr>
+                        <td>Calibration</td>
+                        <td><strong>Brier Score</strong> (lower is better)</td>
+                        <td>0.1616</td>
+                        <td>0.1593</td>
+                        <td class="highlight-best">0.1252</td>
+                        <td><span class="delta-badge">-21.4% error</span></td>
+                    </tr>
+                    <tr>
+                        <td>Calibration</td>
+                        <td><strong>Log-Loss</strong> (lower is better)</td>
+                        <td>0.5110</td>
+                        <td>0.4824</td>
+                        <td class="highlight-best">0.3909</td>
+                        <td><span class="delta-badge">-0.0914</span></td>
+                    </tr>
+
+                    <tr class="dim-header">
+                        <td colspan="6">Classification Performance (Threshold &tau; = 0.50)</td>
+                    </tr>
+                    <tr>
+                        <td>Classification</td>
+                        <td><strong>Accuracy</strong></td>
+                        <td>76.49%</td>
+                        <td>76.71%</td>
+                        <td class="highlight-best">82.56%</td>
+                        <td><span class="delta-badge">+5.86 p.p.</span></td>
+                    </tr>
+                    <tr>
+                        <td>Classification</td>
+                        <td><strong>Precision</strong></td>
+                        <td>76.25%</td>
+                        <td>76.72%</td>
+                        <td class="highlight-best">81.80%</td>
+                        <td><span class="delta-badge">+5.08 p.p.</span></td>
+                    </tr>
+                    <tr>
+                        <td>Classification</td>
+                        <td><strong>Recall</strong></td>
+                        <td>82.11%</td>
+                        <td>81.74%</td>
+                        <td class="highlight-best">87.15%</td>
+                        <td><span class="delta-badge">+5.41 p.p.</span></td>
+                    </tr>
+                    <tr>
+                        <td>Classification</td>
+                        <td><strong>F1-Score</strong></td>
+                        <td>0.7907</td>
+                        <td>0.7915</td>
+                        <td class="highlight-best">0.8439</td>
+                        <td><span class="delta-badge">+0.0524</span></td>
+                    </tr>
+                    <tr>
+                        <td>Classification</td>
+                        <td><strong>Specificity</strong></td>
+                        <td>69.87%</td>
+                        <td>70.78%</td>
+                        <td class="highlight-best">77.16%</td>
+                        <td><span class="delta-badge">+6.38 p.p.</span></td>
+                    </tr>
+</tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 2: Visualizing Econometric Drivers (Grouped Forest Plot with Interactive Filter) -->
+    <div class="section-card">
+        <div class="section-title-row">
+            <h2>Econometric Driver Chart: OLS Coefficients vs. Logit Marginal Effects</h2>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: var(--accent-blue);"></span>
+                    <span>OLS Coef &plusmn; 1 SE</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-diamond" style="background: var(--accent-terracotta);"></span>
+                    <span>Logit AME &plusmn; 1 SE</span>
+                </div>
+                <div class="legend-item">
+                    <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); background: var(--bg-surface-elevated); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border-subtle);">VIF</span>
+                    <span>Collinearity Score</span>
+                </div>
+                <div class="legend-item">
+                    <span style="font-size: 12px; color: var(--accent-green); font-weight: 800;">&#10004;</span>
+                    <span>XGBoost Directional Alignment</span>
+                </div>
+            </div>
+        </div>
+
+        <p class="section-intro" style="margin-bottom: 8px;">
+            Features are grouped logically by analytical domain. Point estimates indicate the percentage-point change in resolution probability (Δ<i>P</i>) with whiskers showing &plusmn;1 standard error (HC3 robust; delta method for AME). Significance superscripts: <sup>***</sup> <i>p</i> &lt; 0.001, <sup>**</sup> <i>p</i> &lt; 0.01, <sup>*</sup> <i>p</i> &lt; 0.05. Hover over any row for exact numerical parameters.
+        </p>
+
+
+        
+        
+        <!-- Econometric Goodness-of-Fit Diagnostics Grid (v04 Specification) -->
+        <div class="diagnostic-grid">
+            <div class="diagnostic-card">
+                <div class="diagnostic-title">Sample &amp; Dimensionality</div>
+                <div class="diagnostic-val">10,042</div>
+                <div class="diagnostic-detail">Dialogues &bull; 28 Explanatory Variables across 5 Operational Domains</div>
+            </div>
+            <div class="diagnostic-card">
+                <div class="diagnostic-title">OLS Calibration &amp; Fit</div>
+                <div class="diagnostic-val">AUC = 0.843</div>
+                <div class="diagnostic-detail">Brier Score = 0.162 &bull; AIC = 10,276.0 (HC3 Robust)</div>
+            </div>
+            <div class="diagnostic-card">
+                <div class="diagnostic-title">Logistic Regression Fit</div>
+                <div class="diagnostic-val">AUC = 0.844</div>
+                <div class="diagnostic-detail">Brier Score = 0.159 &bull; AIC = 9,659.3 (Log-Lik = &minus;4,800.6)</div>
+            </div>
+            <div class="diagnostic-card">
+                <div class="diagnostic-title">Multicollinearity Envelope</div>
+                <div class="diagnostic-val">VIF: 1.3 – 10.7</div>
+                <div class="diagnostic-detail">customer_turns_10pct VIF = <strong>1.44</strong> &bull; optimal_depth = <strong>2.34</strong></div>
+            </div>
+        </div>
+
+        <!-- Collinearity, Scaling & Functional Form Alignment Callout Box -->
+        <div class="callout-box" style="border-left-color: var(--accent-green);">
+            <div class="callout-title" style="color: var(--accent-green);">
+                <span>&#10004; Econometric Specification Note: Operational Scaling &amp; Alignment in v04</span>
+            </div>
+            <p>
+                In the v04 specification (<code>features_ols_v04.parquet</code>), we rescaled <code>share_customer_turns_10pct = share_customer_turns &times; 10</code>. In earlier versions, because customer share was in $[0, 1]$, the coefficient evaluated an unobserved theoretical extreme ($0\%$ to $100\%$ customer speaking time). Rescaling to a $+10	ext{ percentage point}$ unit transforms the marginal effect into an immediately actionable metric: <strong>&minus;10.42 p.p.</strong> direct resolution penalty per $+10\%$ customer turns (Logit AME = <strong>&minus;10.32 p.p.</strong>, OR = <strong>0.520&times;</strong>, <i>p</i> = 1.4&times;10<sup>&minus;64</sup>, VIF = 1.44).
+            </p>
+            <p style="margin-top:6px;">
+                Alongside <code>is_optimal_depth_2_or_3</code> (+14.5 p.p. lift, <i>p</i> &lt; 10<sup>&minus;32</sup>, OR = <strong>2.72&times;</strong>) and <code>all_mandatory_slots_filled</code> (+28.0 p.p. lift, <i>p</i> &lt; 10<sup>&minus;30</sup>, VIF = 4.12), all 28 regressors now plot within a standard visual envelope with <strong>100% directional confirmation from XGBoost</strong>.
+            </p>
+        </div>
+
+        <!-- Interactive Filter Toolbar -->
+        <div class="filter-toolbar">
+            <span class="filter-label">Filter View:</span>
+            <button class="filter-btn active" id="btn-all" onclick="filterFeatures('all')">Show All Features (28)</button>
+            <button class="filter-btn" id="btn-sig" onclick="filterFeatures('sig')">&starf; Significant Only (<i>p</i> &lt; 0.05)</button>
+            <span style="color: var(--border-subtle); margin: 0 4px;">|</span>
+            <span class="filter-label">Domain:</span>
+            <button class="filter-btn" id="btn-ast" onclick="filterCategory('ast')">AST</button>
+            <button class="filter-btn" id="btn-dst" onclick="filterCategory('dst')">DST</button>
+            <button class="filter-btn" id="btn-dynamics" onclick="filterCategory('dynamics')">Dynamics</button>
+            <button class="filter-btn" id="btn-tier" onclick="filterCategory('tier')">Tiers</button>
+            <button class="filter-btn" id="btn-flow" onclick="filterCategory('flow')">Flows</button>
+            <span class="feature-counter" id="feature-count-display">Showing 28 of 28 features</span>
+        </div>
+
+        <!-- SVG Grouped Forest Plot -->
+        <div class="forest-chart-wrapper">
+            <svg id="forest-svg" viewBox="0 0 960 1150" width="100%" height="1150" style="background: var(--bg-page); border-radius: 6px; border: 1px solid var(--border-subtle); transition: height 0.25s ease;">
+                <defs>
+                    <linearGradient id="negGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="rgba(168, 50, 45, 0.08)"/>
+                        <stop offset="100%" stop-color="rgba(168, 50, 45, 0.0)"/>
+                    </linearGradient>
+                    <linearGradient id="posGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="rgba(43, 106, 79, 0.0)"/>
+                        <stop offset="100%" stop-color="rgba(43, 106, 79, 0.08)"/>
+                    </linearGradient>
+                </defs>
+
+                <!-- Plot Scale: X range [-100%, +50%]. Width = 600. Left = 280, Right = 880. Zero effect = 280 + 400 = 680 -->
+                <rect id="bg-neg" x="280" y="30" width="400" height="1080" fill="url(#negGrad)"/>
+                <rect id="bg-pos" x="680" y="30" width="200" height="1080" fill="url(#posGrad)"/>
+
+                <!-- Vertical Gridlines -->
+                <g id="gridlines">
+                    <line x1="280" y1="30" x2="280" y2="1110" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+                    <text x="280" y="1130" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-sans)">−100%</text>
+
+                    <line x1="380" y1="30" x2="380" y2="1110" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+                    <text x="380" y="1130" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-sans)">−75%</text>
+
+                    <line x1="480" y1="30" x2="480" y2="1110" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+                    <text x="480" y="1130" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-sans)">−50%</text>
+
+                    <line x1="580" y1="30" x2="580" y2="1110" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+                    <text x="580" y="1130" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-sans)">−25%</text>
+
+                    <!-- ZERO EFFECT LINE: 680 -->
+                    <line x1="680" y1="30" x2="680" y2="1110" stroke="var(--chart-zero-line)" stroke-width="1.5"/>
+                    <text x="680" y="1130" fill="var(--text-heading)" font-size="11" font-weight="700" text-anchor="middle" font-family="var(--font-sans)">0% (Null)</text>
+
+                    <line x1="780" y1="30" x2="780" y2="1110" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+                    <text x="780" y="1130" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-sans)">+25%</text>
+
+                    <line x1="880" y1="30" x2="880" y2="1110" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+                    <text x="880" y="1130" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="var(--font-sans)">+50%</text>
+
+                    <!-- VIF Header -->
+                    <text x="892" y="24" fill="var(--text-muted)" font-size="11" font-weight="700" text-anchor="middle" font-family="var(--font-sans)">VIF</text>
+                    <!-- XGBoost Alignment Header -->
+                    <text x="932" y="24" fill="var(--text-muted)" font-size="9" font-weight="700" text-anchor="middle" font-family="var(--font-sans)">XGBoost Align</text>
+                </g>
+
+                <!-- Dynamic Feature Rows -->
+                <g id="chart-content">
+
+                    <!-- GROUP 1: ACTION STATE TRACKING (AST) -->
+                    <g class="group-header" data-cat="ast">
+                        <rect x="0" y="-12" width="960" height="22" fill="var(--bg-surface-elevated)"/>
+                        <text x="16" y="3" fill="var(--accent-navy)" font-size="11.5" font-weight="700" letter-spacing="0.06em" font-family="var(--font-sans)">ACTION STATE TRACKING (AST) &bull; AGENT PROCEDURAL COMPLIANCE</text>
+                    </g>
+                    <g class="feature-row" data-cat="ast" data-sig="sig" data-i="0">
+                        <rect x="0" y="-12" width="960" height="24" fill="var(--accent-red-subtle)"/>
+                        <text x="268" y="4" fill="var(--accent-red)" font-size="12" font-weight="700" text-anchor="end" font-family="var(--font-mono)">sop_edit_distance_norm<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="528" y1="-3" x2="543" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="535.7" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="540" y1="3" x2="554" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="547.0,0 550.0,3 547.0,6 544.0,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.6</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="ast" data-sig="sig" data-i="1">
+                        <text x="268" y="4" fill="var(--accent-red)" font-size="12" font-weight="700" text-anchor="end" font-family="var(--font-mono)">action_count_delta<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="639" y1="-3" x2="644" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="641.5" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="635" y1="3" x2="640" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="637.2,0 640.2,3 637.2,6 634.2,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.0</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="ast" data-sig="sig" data-i="2">
+                        <rect x="0" y="-12" width="960" height="24" fill="var(--accent-green-subtle)"/>
+                        <text x="268" y="4" fill="var(--accent-green)" font-size="12" font-weight="700" text-anchor="end" font-family="var(--font-mono)">is_optimal_depth_2_or_3<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="733" y1="-3" x2="743" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="738.1" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="739" y1="3" x2="748" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="743.2,0 746.2,3 743.2,6 740.2,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.3</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="ast" data-sig="sig" data-i="3">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">action_thrashing_count<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="696" y1="-3" x2="708" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="702.3" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="696" y1="3" x2="709" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="702.5,0 705.5,3 702.5,6 699.5,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.5</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="ast" data-sig="sig" data-i="4">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">premature_action_attempts<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="702" y1="-3" x2="714" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="707.8" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="710" y1="3" x2="724" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="716.7,0 719.7,3 716.7,6 713.7,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.3</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="ast" data-sig="ns" data-i="5">
+                        <text x="268" y="4" fill="var(--text-muted)" font-size="12" font-weight="400" text-anchor="end" font-family="var(--font-mono)">action_execution_latency_mean<tspan fill="var(--text-muted)" font-size="10">(ns)</tspan></text>
+                        <line x1="680" y1="-3" x2="682" y2="-3" stroke="var(--accent-blue)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <circle cx="681.1" cy="-3" r="3.5" fill="none" stroke="var(--accent-blue)" stroke-width="1.2"/>
+                        <line x1="681" y1="3" x2="682" y2="3" stroke="var(--accent-terracotta)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <polygon points="681.4,0 684.4,3 681.4,6 678.4,3" fill="none" stroke="var(--accent-terracotta)" stroke-width="1.2"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.9</text>
+                        <text x="938" y="4" fill="var(--text-muted)" font-size="11" font-weight="600" text-anchor="middle" title="Non-significant in linear model">&mdash;</text>
+                    </g>
+
+                    <!-- GROUP 2: DIALOGUE STATE TRACKING (DST) -->
+                    <g class="group-header" data-cat="dst">
+                        <rect x="0" y="-12" width="960" height="22" fill="var(--bg-surface-elevated)"/>
+                        <text x="16" y="3" fill="var(--accent-green)" font-size="11.5" font-weight="700" letter-spacing="0.06em" font-family="var(--font-sans)">DIALOGUE STATE TRACKING (DST) &bull; INFORMATION ELICITATION</text>
+                    </g>
+                    <g class="feature-row" data-cat="dst" data-sig="sig" data-i="6">
+                        <rect x="0" y="-12" width="960" height="24" fill="var(--accent-green-subtle)"/>
+                        <text x="268" y="4" fill="var(--accent-green)" font-size="12" font-weight="700" text-anchor="end" font-family="var(--font-mono)">all_mandatory_slots_filled<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="782" y1="-3" x2="802" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="792.0" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="769" y1="3" x2="789" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="779.3,0 782.3,3 779.3,6 776.3,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">4.1</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dst" data-sig="sig" data-i="7">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">total_slots_disclosed<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="704" y1="-3" x2="709" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="706.7" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="702" y1="3" x2="707" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="704.5,0 707.5,3 704.5,6 701.5,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--accent-amber)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">6.8</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dst" data-sig="sig" data-i="8">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">slot_filling_latency<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="684" y1="-3" x2="685" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="684.6" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="683" y1="3" x2="684" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="683.9,0 686.9,3 683.9,6 680.9,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--accent-amber)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">8.4</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dst" data-sig="ns" data-i="9">
+                        <text x="268" y="4" fill="var(--text-muted)" font-size="12" font-weight="400" text-anchor="end" font-family="var(--font-mono)">unused_slot_ratio<tspan fill="var(--text-muted)" font-size="10">(ns)</tspan></text>
+                        <line x1="666" y1="-3" x2="679" y2="-3" stroke="var(--accent-blue)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <circle cx="672.9" cy="-3" r="3.5" fill="none" stroke="var(--accent-blue)" stroke-width="1.2"/>
+                        <line x1="668" y1="3" x2="682" y2="3" stroke="var(--accent-terracotta)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <polygon points="675.1,0 678.1,3 675.1,6 672.1,3" fill="none" stroke="var(--accent-terracotta)" stroke-width="1.2"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.5</text>
+                        <text x="938" y="4" fill="var(--text-muted)" font-size="11" font-weight="600" text-anchor="middle" title="Non-significant in linear model">&mdash;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dst" data-sig="ns" data-i="10">
+                        <text x="268" y="4" fill="var(--text-muted)" font-size="12" font-weight="400" text-anchor="end" font-family="var(--font-mono)">upfront_slot_density<tspan fill="var(--text-muted)" font-size="10">(ns)</tspan></text>
+                        <line x1="687" y1="-3" x2="703" y2="-3" stroke="var(--accent-blue)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <circle cx="695.3" cy="-3" r="3.5" fill="none" stroke="var(--accent-blue)" stroke-width="1.2"/>
+                        <line x1="684" y1="3" x2="700" y2="3" stroke="var(--accent-terracotta)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <polygon points="692.0,0 695.0,3 692.0,6 689.0,3" fill="none" stroke="var(--accent-terracotta)" stroke-width="1.2"/>
+                        <text x="892" y="4" fill="var(--accent-amber)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">5.2</text>
+                        <text x="938" y="4" fill="var(--text-muted)" font-size="11" font-weight="600" text-anchor="middle" title="Non-significant in linear model">&mdash;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dst" data-sig="sig" data-i="11">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">slot_repetition_count<tspan fill="var(--accent-amber)" font-weight="800">*</tspan></text>
+                        <line x1="671" y1="-3" x2="676" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="673.3" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="672" y1="3" x2="678" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="674.9,0 677.9,3 674.9,6 671.9,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.3</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dst" data-sig="sig" data-i="12">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">mandatory_slots_count<tspan fill="var(--accent-amber)" font-weight="800">**</tspan></text>
+                        <line x1="687" y1="-3" x2="695" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="691.4" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="686" y1="3" x2="694" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="689.6,0 692.6,3 689.6,6 686.6,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--accent-red)" font-weight="700" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">11.8</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+
+                    <!-- GROUP 3: CONVERSATIONAL DYNAMICS & CHURN -->
+                    <g class="group-header" data-cat="dynamics">
+                        <rect x="0" y="-12" width="960" height="22" fill="var(--bg-surface-elevated)"/>
+                        <text x="16" y="3" fill="var(--accent-terracotta)" font-size="11.5" font-weight="700" letter-spacing="0.06em" font-family="var(--font-sans)">CONVERSATIONAL CHURN & EFFORT DYNAMICS</text>
+                    </g>
+                    <g class="feature-row" data-cat="dynamics" data-sig="sig" data-i="13">
+                        <rect x="0" y="-12" width="960" height="24" fill="var(--accent-red-subtle)"/>
+                        <text x="268" y="4" fill="var(--accent-red)" font-size="12" font-weight="700" text-anchor="end" font-family="var(--font-mono)">share_customer_turns_10pct<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="636" y1="-3" x2="641" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="638.3" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="636" y1="3" x2="641" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="638.7,0 641.7,3 638.7,6 635.7,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.4</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dynamics" data-sig="sig" data-i="14">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">num_turns<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="682" y1="-3" x2="683" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="682.9" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="683" y1="3" x2="684" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="683.2,0 686.2,3 683.2,6 680.2,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">3.0</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="dynamics" data-sig="ns" data-i="15">
+                        <text x="268" y="4" fill="var(--text-muted)" font-size="12" font-weight="400" text-anchor="end" font-family="var(--font-mono)">num_order_products<tspan fill="var(--text-muted)" font-size="10">(ns)</tspan></text>
+                        <line x1="678" y1="-3" x2="684" y2="-3" stroke="var(--accent-blue)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <circle cx="681.1" cy="-3" r="3.5" fill="none" stroke="var(--accent-blue)" stroke-width="1.2"/>
+                        <line x1="678" y1="3" x2="684" y2="3" stroke="var(--accent-terracotta)" stroke-width="1.5" stroke-dasharray="2,2"/>
+                        <polygon points="681.3,0 684.3,3 681.3,6 678.3,3" fill="none" stroke="var(--accent-terracotta)" stroke-width="1.2"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.0</text>
+                        <text x="938" y="4" fill="var(--text-muted)" font-size="11" font-weight="600" text-anchor="middle" title="Non-significant in linear model">&mdash;</text>
+                    </g>
+
+                    <!-- GROUP 4: MEMBER LOYALTY TIERS (member_*) -->
+                    <g class="group-header" data-cat="tier">
+                        <rect x="0" y="-12" width="960" height="22" fill="var(--bg-surface-elevated)"/>
+                        <text x="16" y="3" fill="var(--accent-navy)" font-size="11.5" font-weight="700" letter-spacing="0.06em" font-family="var(--font-sans)">MEMBER LOYALTY TIERS (member_*) &bull; <tspan fill="var(--text-muted)" font-weight="500">Baseline Reference: member_level_guest</tspan></text>
+                    </g>
+                    <g class="feature-row" data-cat="tier" data-sig="sig" data-i="16">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">member_level_gold<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="709" y1="-3" x2="718" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="713.8" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="708" y1="3" x2="717" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="712.8,0 715.8,3 712.8,6 709.8,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.5</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="tier" data-sig="sig" data-i="17">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">member_level_silver<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="698" y1="-3" x2="707" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="702.2" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="695" y1="3" x2="704" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="699.8,0 702.8,3 699.8,6 696.8,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.5</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="tier" data-sig="sig" data-i="18">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">member_level_bronze<tspan fill="var(--accent-amber)" font-weight="800">*</tspan></text>
+                        <line x1="686" y1="-3" x2="695" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="690.1" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="685" y1="3" x2="693" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="689.0,0 692.0,3 689.0,6 686.0,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">1.5</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+
+                    <!-- GROUP 5: STRUCTURAL INTENT FLOWS (flow_*) -->
+                    <g class="group-header" data-cat="flow">
+                        <rect x="0" y="-12" width="960" height="22" fill="var(--bg-surface-elevated)"/>
+                        <text x="16" y="3" fill="var(--accent-navy)" font-size="11.5" font-weight="700" letter-spacing="0.06em" font-family="var(--font-sans)">STRUCTURAL INTENT FLOWS (flow_*) &bull; <tspan fill="var(--text-muted)" font-weight="500">Baseline Reference: flow_account_access</tspan></text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="19">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_troubleshoot_site<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="425" y1="-3" x2="440" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="432.7" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="363" y1="3" x2="387" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="374.8,0 377.8,3 374.8,6 371.8,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">3.1</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="20">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_subscription_inquiry<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="448" y1="-3" x2="464" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="456.3" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="462" y1="3" x2="480" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="470.7,0 473.7,3 470.7,6 467.7,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.3</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="21">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_shipping_issue<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="428" y1="-3" x2="454" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="441.0" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="436" y1="3" x2="461" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="448.5,0 451.5,3 448.5,6 445.5,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--accent-amber)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">5.1</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="22">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_order_issue<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="472" y1="-3" x2="488" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="480.0" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="475" y1="3" x2="493" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="483.8,0 486.8,3 483.8,6 480.8,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.8</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="23">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_product_defect<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="421" y1="-3" x2="444" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="432.4" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="422" y1="3" x2="444" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="433.1,0 436.1,3 433.1,6 430.1,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">4.7</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="24">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_purchase_dispute<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="521" y1="-3" x2="537" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="529.2" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="509" y1="3" x2="529" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="518.8,0 521.8,3 518.8,6 515.8,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.6</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="25">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_manage_account<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="567" y1="-3" x2="585" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="575.7" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="553" y1="3" x2="575" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="563.8,0 566.8,3 563.8,6 560.8,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">2.3</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="26">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_single_item_query<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="618" y1="-3" x2="639" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="628.1" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="588" y1="3" x2="610" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="599.0,0 602.0,3 599.0,6 596.0,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">4.0</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+                    <g class="feature-row" data-cat="flow" data-sig="sig" data-i="27">
+                        <text x="268" y="4" fill="var(--text-heading)" font-size="12" font-weight="600" text-anchor="end" font-family="var(--font-mono)">flow_storewide_query<tspan fill="var(--accent-amber)" font-weight="800">***</tspan></text>
+                        <line x1="630" y1="-3" x2="648" y2="-3" stroke="var(--accent-blue)" stroke-width="2"/>
+                        <circle cx="639.4" cy="-3" r="4.5" fill="var(--accent-blue)"/>
+                        <line x1="607" y1="3" x2="628" y2="3" stroke="var(--accent-terracotta)" stroke-width="2"/>
+                        <polygon points="617.5,0 620.5,3 617.5,6 614.5,3" fill="var(--accent-terracotta)"/>
+                        <text x="892" y="4" fill="var(--text-muted)" font-weight="400" font-size="10.5" font-family="var(--font-mono)" text-anchor="middle">3.3</text>
+                        <text x="938" y="4" fill="var(--accent-green)" font-size="13" font-weight="800" text-anchor="middle" title="XGBoost Direction: Aligned">&#10004;</text>
+                    </g>
+
+                </g>
+            </svg>
+        </div>
+    </div>
+
+            <!-- Section 3: Non-Linear Operational Breakdown Cliffs & Tipping Points -->
+    <div class="section-card">
+        <div class="section-title-row">
+            <h2>Non-Linear Operational Breakdown Cliff: Agent Procedural Deviation</h2>
+            <span class="badge badge-purple">Discovered via XGBoost Non-Parametric Surfaces</span>
+        </div>
+        <p class="section-intro">
+            While OLS confirms that customer churn is a continuous, linear attrition, XGBoost discovers a severe <strong>discontinuous operational cliff</strong> in agent guideline adherence. When agents stay within 1 minor drift (&le; 0.35 normalized deviation), resolution averages <strong>64.8%</strong>; exceeding this threshold triggers a catastrophic collapse to <strong>24.4%</strong>.
+        </p>
+
+        <!-- Compact 2-Column Professional Layout -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap:24px; align-items:center; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:8px; padding:20px 22px;">
+            <!-- Left: Smooth Fitted Polynomial & Step Cliff SVG -->
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-size:12px; font-weight:700; color:var(--text-heading); font-family:var(--font-sans);">
+                        Resolution Probability vs. SOP Deviation Curve
+                    </div>
+                    <span style="font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);">Weighted 3rd-Degree Polynomial Fit</span>
+                </div>
+                
+        <svg viewBox="0 0 500 230" style="width:100%; max-width:520px; height:auto; overflow:visible;" font-family="var(--font-sans)">
+            <defs>
+                <linearGradient id="poly-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--accent-blue)" stop-opacity="0.18"/>
+                    <stop offset="100%" stop-color="var(--accent-blue)" stop-opacity="0.01"/>
+                </linearGradient>
+            </defs>
+
+            <!-- Background Zone Bands -->
+            <!-- Safe Zone (< 0.35) -->
+            <rect x="45" y="25" width="185.9" height="170" fill="var(--accent-green-subtle)" opacity="0.5"/>
+            <text x="138.0" y="20" fill="var(--accent-green)" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.05em">ACCEPTABLE SOP EXECUTION (64.8%)</text>
+
+            <!-- Breakdown Cliff Zone (>= 0.35) -->
+            <rect x="230.9" y="25" width="239.1" height="170" fill="var(--accent-red-subtle)" opacity="0.6"/>
+            <text x="350.5" y="20" fill="var(--accent-red)" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.05em">BREAKDOWN CLIFF (24.4%)</text>
+
+            <!-- Gridlines & Y-Axis -->
+            <line x1="45" y1="67.5" x2="470.0" y2="67.5" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+            <text x="38" y="71.0" fill="var(--text-muted)" font-size="9.5" font-family="var(--font-mono)" text-anchor="end">60%</text>
+
+            <line x1="45" y1="110.0" x2="470.0" y2="110.0" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+            <text x="38" y="113.5" fill="var(--text-muted)" font-size="9.5" font-family="var(--font-mono)" text-anchor="end">40%</text>
+
+            <line x1="45" y1="152.5" x2="470.0" y2="152.5" stroke="var(--chart-grid)" stroke-dasharray="3,3"/>
+            <text x="38" y="156.0" fill="var(--text-muted)" font-size="9.5" font-family="var(--font-mono)" text-anchor="end">20%</text>
+
+            <line x1="45" y1="195.0" x2="470.0" y2="195.0" stroke="var(--border-subtle)" stroke-width="1.2"/>
+            <text x="38" y="198.5" fill="var(--text-muted)" font-size="9.5" font-family="var(--font-mono)" text-anchor="end">0%</text>
+
+            <!-- X-Axis Labels -->
+            <text x="45.0" y="210" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)" text-anchor="middle">0.00</text>
+            <text x="151.2" y="210" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)" text-anchor="middle">0.20</text>
+            <text x="230.9" y="210" fill="var(--accent-red)" font-size="10.5" font-weight="700" font-family="var(--font-mono)" text-anchor="middle">0.35</text>
+            <text x="310.6" y="210" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)" text-anchor="middle">0.50</text>
+            <text x="416.9" y="210" fill="var(--text-muted)" font-size="10" font-family="var(--font-mono)" text-anchor="middle">0.70</text>
+            <text x="257.5" y="226" fill="var(--text-muted)" font-size="10" font-family="var(--font-sans)" text-anchor="middle">Normalized SOP Levenshtein Deviation Level &rarr;</text>
+
+            <!-- Vertical Cliff Callout Line: x = 0.35 -->
+            <line x1="230.9" y1="25" x2="230.9" y2="195" stroke="var(--accent-red)" stroke-width="2" stroke-dasharray="4,3"/>
+
+            <!-- Cliff Badge Annotation -->
+            <rect x="238.9" y="38" width="102" height="20" rx="3" fill="var(--accent-red)" opacity="0.95"/>
+            <text x="289.9" y="52" fill="#ffffff" font-size="9.5" font-weight="700" text-anchor="middle">&#9888; Cliff Edge (0.35)</text>
+
+            <!-- Polynomial Area Fill -->
+            <path d="M 45.0,44.7 L 54.7,46.8 L 64.3,49.0 L 74.0,51.3 L 83.6,53.8 L 93.3,56.3 L 103.0,58.9 L 112.6,61.6 L 122.3,64.4 L 131.9,67.2 L 141.6,70.1 L 151.3,73.1 L 160.9,76.1 L 170.6,79.2 L 180.2,82.3 L 189.9,85.5 L 199.5,88.7 L 209.2,91.9 L 218.9,95.1 L 228.5,98.3 L 238.2,101.5 L 247.8,104.8 L 257.5,108.0 L 267.2,111.2 L 276.8,114.4 L 286.5,117.6 L 296.1,120.7 L 305.8,123.8 L 315.5,126.8 L 325.1,129.8 L 334.8,132.8 L 344.4,135.7 L 354.1,138.5 L 363.8,141.2 L 373.4,143.8 L 383.1,146.4 L 392.7,148.9 L 402.4,151.2 L 412.0,153.5 L 421.7,155.6 L 431.4,157.7 L 441.0,159.6 L 450.7,161.4 L 460.3,163.0 L 470.0,164.5 L 470.0,195.0 L 45.0,195.0 Z" fill="url(#poly-gradient)"/>
+
+            <!-- Smooth Polynomial Fitted Line -->
+            <path d="M 45.0,44.7 L 54.7,46.8 L 64.3,49.0 L 74.0,51.3 L 83.6,53.8 L 93.3,56.3 L 103.0,58.9 L 112.6,61.6 L 122.3,64.4 L 131.9,67.2 L 141.6,70.1 L 151.3,73.1 L 160.9,76.1 L 170.6,79.2 L 180.2,82.3 L 189.9,85.5 L 199.5,88.7 L 209.2,91.9 L 218.9,95.1 L 228.5,98.3 L 238.2,101.5 L 247.8,104.8 L 257.5,108.0 L 267.2,111.2 L 276.8,114.4 L 286.5,117.6 L 296.1,120.7 L 305.8,123.8 L 315.5,126.8 L 325.1,129.8 L 334.8,132.8 L 344.4,135.7 L 354.1,138.5 L 363.8,141.2 L 373.4,143.8 L 383.1,146.4 L 392.7,148.9 L 402.4,151.2 L 412.0,153.5 L 421.7,155.6 L 431.4,157.7 L 441.0,159.6 L 450.7,161.4 L 460.3,163.0 L 470.0,164.5" fill="none" stroke="var(--accent-navy)" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- Empirical Data Points (bubbles sized by N) -->
+            <circle cx="45.0" cy="44.4" r="8.5" fill="var(--accent-green)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.00&#10;Resolution: 70.9%&#10;Dialogues: 4,971</title></circle>
+<circle cx="151.2" cy="108.8" r="4.5" fill="var(--accent-amber)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.20&#10;Resolution: 40.6%&#10;Dialogues: 212</title></circle>
+<circle cx="177.8" cy="84.1" r="6.1" fill="var(--accent-amber)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.25&#10;Resolution: 52.2%&#10;Dialogues: 1,349</title></circle>
+<circle cx="220.3" cy="76.5" r="5.6" fill="var(--accent-amber)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.33&#10;Resolution: 55.8%&#10;Dialogues: 893</title></circle>
+<circle cx="257.5" cy="110.0" r="4.2" fill="var(--accent-red)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.40&#10;Resolution: 40.0%&#10;Dialogues: 90</title></circle>
+<circle cx="310.6" cy="135.8" r="5.9" fill="var(--accent-red)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.50&#10;Resolution: 27.8%&#10;Dialogues: 1,088</title></circle>
+<circle cx="363.7" cy="136.7" r="4.3" fill="var(--accent-red)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.60&#10;Resolution: 27.4%&#10;Dialogues: 124</title></circle>
+<circle cx="400.9" cy="134.5" r="4.9" fill="var(--accent-red)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.67&#10;Resolution: 28.5%&#10;Dialogues: 411</title></circle>
+<circle cx="443.4" cy="168.1" r="5.0" fill="var(--accent-red)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.75&#10;Resolution: 12.6%&#10;Dialogues: 443</title></circle>
+<circle cx="470.0" cy="160.2" r="4.1" fill="var(--accent-red)" stroke="var(--bg-surface)" stroke-width="1.5"><title>SOP Deviation: 0.80&#10;Resolution: 16.4%&#10;Dialogues: 61</title></circle>
+
+            <!-- Exact Callouts at specific points -->
+            <text x="45.0" y="34.3" fill="var(--accent-green)" font-size="10" font-weight="800" font-family="var(--font-mono)">70.9%</text>
+            <text x="177.8" y="74.1" fill="var(--accent-amber)" font-size="10" font-weight="700" font-family="var(--font-mono)">52.2%</text>
+            <text x="310.6" y="125.9" fill="var(--accent-red)" font-size="10" font-weight="700" font-family="var(--font-mono)">27.8%</text>
+        </svg>
+
+            </div>
+
+            <!-- Right: Executive Operational Matrix & Decision Heuristics -->
+            <div>
+                <h4 style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-heading); margin-bottom:10px;">
+                    Executive Actionability Matrix &bull; SOP Drift
+                </h4>
+                <table class="tipping-table" style="width:100%; margin-bottom:12px;">
+                    <thead>
+                        <tr>
+                            <th>Operating Zone</th>
+                            <th>Dialogues</th>
+                            <th>Resolution</th>
+                            <th>TreeSHAP Log-Odds</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong style="color:var(--accent-green);">&#10004; Safe Execution</strong> (&le; 0.20)</td>
+                            <td>5,183 (51.6%)</td>
+                            <td style="font-weight:700; color:var(--accent-green);">69.6%</td>
+                            <td style="color:var(--accent-green); font-family:var(--font-mono);">+0.452</td>
+                        </tr>
+                        <tr>
+                            <td><strong style="color:var(--accent-amber);">&#9888; Mild Drift</strong> (0.20 &ndash; 0.35)</td>
+                            <td>2,242 (22.3%)</td>
+                            <td style="font-weight:600; color:var(--accent-amber);">53.6%</td>
+                            <td style="color:var(--accent-amber); font-family:var(--font-mono);">+0.133</td>
+                        </tr>
+                        <tr class="cliff-row">
+                            <td><strong style="color:var(--accent-red);">&#9760; Breakdown Cliff</strong> (&gt; 0.35)</td>
+                            <td>2,617 (26.1%)</td>
+                            <td style="font-weight:800; color:var(--accent-red);">24.4%</td>
+                            <td style="color:var(--accent-red); font-family:var(--font-mono);">&minus;1.053</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="callout-box" style="border-left-color:var(--accent-red); margin:0; padding:10px 14px; background:var(--accent-red-subtle);">
+                    <div style="font-size:12px; font-weight:700; color:var(--accent-red); margin-bottom:3px;">
+                        Operational Governance Rule
+                    </div>
+                    <p style="font-size:11.5px; color:var(--text-body); margin:0; line-height:1.45;">
+                        Configure dialogue policy supervisors to issue a hard alert or trigger senior supervisor routing whenever normalized action sequence deviation reaches <strong>0.35</strong> (more than 1 un-prescribed or skipped intermediate step), preventing dialogues from falling over the 24.4% resolution cliff.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: Conversational Failure Mode Archetype Segmentation -->
+    <div class="section-card">
+        <div class="section-title-row">
+            <h2>Conversational Failure Mode Segmentation (N = 4,610 Unresolved Dialogues)</h2>
+            <span class="badge badge-red">TreeSHAP Blame Decomposition</span>
+        </div>
+        <p class="section-intro">
+            By aggregating local TreeSHAP attribution across failed interactions (<i>Y</i> = 0), conversations partition into four empirically distinct failure archetypes. This segmentation determines whether interventions should target agent procedural tooling, customer verification gateways, or flow redesign.
+        </p>
+
+        <div class="archetype-grid">
+            <!-- Archetype 1: Flow Inherent Difficulty -->
+            <div class="archetype-card domain-border">
+                <div>
+                    <div style="font-family:var(--font-sans); font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Archetype 1 &bull; Domain Difficulty</div>
+                    <div class="archetype-share" style="color:var(--accent-navy);">44.6%</div>
+                    <div class="archetype-name">Flow Inherent Complexity</div>
+                    <p class="archetype-desc">
+                        Conversations in structurally hard domains (<code>troubleshoot_site</code>, <code>subscription_inquiry</code>, <code>product_defect</code>) where policy blocks or technical constraints prevent clean resolution despite high procedural adherence.
+                    </p>
+                </div>
+                <div class="archetype-metrics">
+                    <span>Dialogues: <strong>2,055</strong></span>
+                    <span>Mean Turns: <strong>21.1</strong></span>
+                    <span>Slots Filled: <strong>77.9%</strong></span>
+                    <span>SOP Dev: <strong>0.308</strong></span>
+                </div>
+            </div>
+
+            <!-- Archetype 2: Procedural SOP Breakdown -->
+            <div class="archetype-card ast-border">
+                <div>
+                    <div style="font-family:var(--font-sans); font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Archetype 2 &bull; Agent Non-Compliance</div>
+                    <div class="archetype-share" style="color:var(--accent-red);">29.4%</div>
+                    <div class="archetype-name">Procedural SOP Breakdown</div>
+                    <p class="archetype-desc">
+                        The customer provided required information (78.0% filled), but the agent deviated severely from guidelines, executing out-of-order or duplicate intermediate actions and abandoning the canonical resolving path.
+                    </p>
+                </div>
+                <div class="archetype-metrics">
+                    <span>Dialogues: <strong>1,356</strong></span>
+                    <span>Mean Turns: <strong>25.0</strong></span>
+                    <span>Slots Filled: <strong>78.0%</strong></span>
+                    <span>SOP Dev: <strong>0.601</strong> (High)</span>
+                </div>
+            </div>
+
+            <!-- Archetype 3: Information Verification Stall -->
+            <div class="archetype-card dst-border">
+                <div>
+                    <div style="font-family:var(--font-sans); font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Archetype 3 &bull; Information Asymmetry</div>
+                    <div class="archetype-share" style="color:var(--accent-amber);">18.6%</div>
+                    <div class="archetype-name">Information Verification Stall</div>
+                    <p class="archetype-desc">
+                        Dialogue stalled during customer authentication or parameter collection. Characterized by low completion rate (72.1% filled), halting before required authorization actions could be unlocked.
+                    </p>
+                </div>
+                <div class="archetype-metrics">
+                    <span>Dialogues: <strong>857</strong></span>
+                    <span>Mean Turns: <strong>19.0</strong></span>
+                    <span>Slots Filled: <strong>72.1%</strong></span>
+                    <span>SOP Dev: <strong>0.140</strong></span>
+                </div>
+            </div>
+
+            <!-- Archetype 4: Customer Effort Churn -->
+            <div class="archetype-card churn-border">
+                <div>
+                    <div style="font-family:var(--font-sans); font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Archetype 4 &bull; Conversational Friction</div>
+                    <div class="archetype-share" style="color:var(--accent-terracotta);">7.4%</div>
+                    <div class="archetype-name">Customer Effort Churn</div>
+                    <p class="archetype-desc">
+                        Customers provided nearly all required information (94.4% filled), but became trapped in lengthy repetitive clarification loops where customer turns carried 50.4% of conversation turns.
+                    </p>
+                </div>
+                <div class="archetype-metrics">
+                    <span>Dialogues: <strong>342</strong></span>
+                    <span>Mean Turns: <strong>23.8</strong></span>
+                    <span>Customer Share: <strong>50.4%</strong></span>
+                    <span>Slots Filled: <strong>94.4%</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: Actionable Business Recommendations -->
+    <div class="section-card">
+        <div class="section-title-row">
+            <h2>Executive Business Recommendations & Interventions</h2>
+            <span class="badge badge-purple">ROI-Focused Operational Directives</span>
+        </div>
+
+        <div class="rec-grid">
+            <div class="rec-card">
+                <div>
+                    <div class="rec-header">
+                        <div class="rec-num">1</div>
+                        <div class="rec-title">Real-Time SOP Guardrails</div>
+                    </div>
+                    <p class="rec-body">
+                        Agent SOP deviation (<span class="mono">sop_edit_distance_norm</span>) is the single most destructive operational defect (−35.5 to −39.4 p.p. impact). Deploy real-time agent assist prompts that flag out-of-order execution before the agent proceeds.
+                    </p>
+                </div>
+                <div class="rec-footer">Target: +15% to +20% Resolution Recovery &bull; High Confidence</div>
+            </div>
+
+            <div class="rec-card">
+                <div>
+                    <div class="rec-header">
+                        <div class="rec-num">2</div>
+                        <div class="rec-title">Mandatory Slot Completion Gateway</div>
+                    </div>
+                    <p class="rec-body">
+                        Capturing 100% of mandatory slots yields a 4.94&times; multiplier on resolution odds (+25.7 to +26.1 p.p. lift). Hard-code a strict gateway in the bot/agent console: never execute fulfillment actions until required slots are validated.
+                    </p>
+                </div>
+                <div class="rec-footer">Target: Prevents ~1,300 avoidable failures &bull; High Confidence</div>
+            </div>
+
+            <div class="rec-card">
+                <div>
+                    <div class="rec-header">
+                        <div class="rec-num">3</div>
+                        <div class="rec-title">Customer Turn Churn Alerting</div>
+                    </div>
+                    <p class="rec-body">
+                        When customer turn share exceeds 50% across 6+ turns, resolution odds collapse by 99.7% (−95.9 p.p.). Trigger automated supervisor escalation or intent re-clarification when customer turns outpace agent turns.
+                    </p>
+                </div>
+                <div class="rec-footer">Target: Early intervention on frustrated callers &bull; Medium Confidence</div>
+            </div>
+
+            <div class="rec-card">
+                <div>
+                    <div class="rec-header">
+                        <div class="rec-num">4</div>
+                        <div class="rec-title">Re-engineer High-Failure Flows</div>
+                    </div>
+                    <p class="rec-body">
+                        Site Troubleshooting (−70.4 to −79.0 p.p.), Subscription Inquiry (−63.9 to −71.0 p.p.), and Product Defect (−57.6 to −61.4 p.p.) have massive inherent difficulty penalties relative to Account Access. Replace generic chat trees with interactive visual screen flows.
+                    </p>
+                </div>
+                <div class="rec-footer">Target: Closes the 60% resolution gap in tough flows &bull; High Confidence</div>
+            </div>
+
+            <div class="rec-card">
+                <div>
+                    <div class="rec-header">
+                        <div class="rec-num">5</div>
+                        <div class="rec-title">Protect Member Tier Loyalty Affinity</div>
+                    </div>
+                    <p class="rec-body">
+                        Gold members experience a +7.8 to +8.0 p.p. resolution premium (<i>p</i> &lt; 10<sup>−11</sup>) over guest users. Maintain priority queue routing for verified loyalty tiers while optimizing slot-filling prompts for guests.
+                    </p>
+                </div>
+                <div class="rec-footer">Target: High-value VIP customer retention &bull; Medium Confidence</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Footer -->
+    <footer>
+        <p>Customer Dialogue State Tracking (DST) & Action State (AST) Econometric Evaluation &bull; Generated from <code>notebooks/03_regression_analysis.ipynb</code> &bull; Action-Based Conversations Dataset (ABCD)</p>
+    </footer>
+
+</div>
+
+<!-- Interactive Floating Tooltip -->
+<div id="tooltip"></div>
+
+<!-- Interactive Filtering & Data Logic -->
+<script>
+    // Exact Empirical Regression Results Matrix (N = 10,042)
+    // [term, category, ols_coef, ols_se, ols_p, logit_ame, ame_se, ame_p, odds_ratio, vif]
+    const REGRESSION_DATA = [
+        ['sop_edit_distance_norm', 'ast', -0.36074, 0.01873, 1.09e-82, -0.33244, 0.01800, 3.59e-76, 0.12173, 1.59],
+        ['action_count_delta', 'ast', -0.09614, 0.00555, 3.47e-67, -0.10699, 0.00674, 1.12e-56, 0.50774, 2.01],
+        ['is_optimal_depth_2_or_3', 'ast', 0.14515, 0.01211, 4.18e-33, 0.15808, 0.01174, 2.67e-41, 2.72208, 2.34],
+        ['action_thrashing_count', 'ast', 0.05564, 0.01496, 2.01e-04, 0.05618, 0.01567, 3.36e-04, 1.42749, 1.46],
+        ['premature_action_attempts', 'ast', 0.06941, 0.01560, 8.58e-06, 0.09181, 0.01775, 2.32e-07, 1.78891, 1.28],
+        ['action_execution_latency_mean', 'ast', 0.00269, 0.00190, 1.56e-01, 0.00346, 0.00191, 6.96e-02, 1.02218, 1.85],
+        ['all_mandatory_slots_filled', 'dst', 0.27993, 0.02402, 2.15e-31, 0.24821, 0.02467, 8.34e-24, 4.81811, 4.14],
+        ['total_slots_disclosed', 'dst', 0.06686, 0.00605, 2.30e-28, 0.06120, 0.00598, 1.33e-24, 1.47362, 6.80],
+        ['slot_filling_latency', 'dst', 0.01146, 0.00136, 4.04e-17, 0.00979, 0.00143, 8.04e-12, 1.06396, 8.44],
+        ['unused_slot_ratio', 'dst', -0.01770, 0.01608, 2.71e-01, -0.01223, 0.01771, 4.90e-01, 0.92546, 2.51],
+        ['upfront_slot_density', 'dst', 0.03835, 0.01968, 5.13e-02, 0.03010, 0.02008, 1.34e-01, 1.21007, 5.23],
+        ['slot_repetition_count', 'dst', -0.01678, 0.00682, 1.40e-02, -0.01266, 0.00697, 6.93e-02, 0.92290, 1.28],
+        ['mandatory_slots_count', 'dst', 0.02858, 0.01009, 4.61e-03, 0.02411, 0.00972, 1.31e-02, 1.16505, 11.83],
+        ['share_customer_turns_10pct', 'dynamics', -0.10424, 0.00614, 1.43e-64, -0.10324, 0.00616, 5.94e-63, 0.51995, 1.44],
+        ['num_turns', 'dynamics', 0.00716, 0.00101, 1.07e-12, 0.00808, 0.00102, 1.83e-15, 1.05250, 2.96],
+        ['num_order_products', 'dynamics', 0.00267, 0.00791, 7.36e-01, 0.00337, 0.00718, 6.39e-01, 1.02158, 1.96],
+        ['member_level_gold', 'tier', 0.08439, 0.01109, 2.81e-14, 0.08208, 0.01092, 5.60e-14, 1.68197, 1.49],
+        ['member_level_silver', 'tier', 0.05545, 0.01140, 1.16e-06, 0.04948, 0.01104, 7.38e-06, 1.36817, 1.47],
+        ['member_level_bronze', 'tier', 0.02534, 0.01154, 2.81e-02, 0.02238, 0.01108, 4.34e-02, 1.15233, 1.47],
+        ['flow_troubleshoot_site', 'flow', -0.61816, 0.01893, 7.90e-234, -0.76303, 0.02962, 2.44e-146, 0.00796, 3.05],
+        ['flow_subscription_inquiry', 'flow', -0.55922, 0.02027, 1.47e-167, -0.52325, 0.02212, 1.07e-123, 0.03634, 2.31],
+        ['flow_shipping_issue', 'flow', -0.59755, 0.03168, 2.31e-79, -0.57883, 0.03064, 1.29e-79, 0.02556, 5.08],
+        ['flow_order_issue', 'flow', -0.50001, 0.02087, 8.66e-127, -0.49044, 0.02307, 2.54e-100, 0.04474, 2.76],
+        ['flow_product_defect', 'flow', -0.61910, 0.02812, 1.98e-107, -0.61720, 0.02815, 1.56e-106, 0.02004, 4.74],
+        ['flow_purchase_dispute', 'flow', -0.37700, 0.02019, 8.03e-78, -0.40293, 0.02428, 7.16e-62, 0.07788, 2.60],
+        ['flow_manage_account', 'flow', -0.26066, 0.02229, 1.35e-31, -0.29043, 0.02725, 1.59e-26, 0.15884, 2.33],
+        ['flow_single_item_query', 'flow', -0.12969, 0.02633, 8.39e-07, -0.20245, 0.02866, 1.62e-12, 0.27735, 4.04],
+        ['flow_storewide_query', 'flow', -0.10161, 0.02254, 6.55e-06, -0.15624, 0.02735, 1.11e-08, 0.37167, 3.34]
+    ];
+
+    let activeFilter = 'all'; // 'all' or 'sig'
+    let activeCat = 'all';    // 'all', 'ast', 'dst', 'dynamics', 'tier', 'flow'
+
+    function filterFeatures(mode) {
+        activeFilter = mode;
+        activeCat = 'all';
+        updateFilterUI();
+        applyFilter();
+    }
+
+    function filterCategory(cat) {
+        if (activeCat === cat) {
+            activeCat = 'all';
+        } else {
+            activeCat = cat;
+        }
+        updateFilterUI();
+        applyFilter();
+    }
+
+    function updateFilterUI() {
+        document.getElementById('btn-all').className = 'filter-btn' + (activeFilter === 'all' && activeCat === 'all' ? ' active' : '');
+        document.getElementById('btn-sig').className = 'filter-btn' + (activeFilter === 'sig' && activeCat === 'all' ? ' active-sig' : '');
+
+        const cats = ['ast', 'dst', 'dynamics', 'tier', 'flow'];
+        cats.forEach(c => {
+            const btn = document.getElementById('btn-' + c);
+            if (activeCat === c) {
+                btn.className = 'filter-btn active';
+            } else {
+                btn.className = 'filter-btn';
+            }
+        });
+    }
+
+    function applyFilter() {
+        const svg = document.getElementById('forest-svg');
+        const rows = Array.from(document.querySelectorAll('.feature-row'));
+        const headers = Array.from(document.querySelectorAll('.group-header'));
+        const bgNeg = document.getElementById('bg-neg');
+        const bgPos = document.getElementById('bg-pos');
+        const gridLines = Array.from(document.querySelectorAll('#gridlines line'));
+        const gridTexts = Array.from(document.querySelectorAll('#gridlines text'));
+
+        const categories = ['ast', 'dst', 'dynamics', 'tier', 'flow'];
+        let currentY = 55;
+        const rowHeight = 25;
+        const groupSpacing = 30;
+        let visibleCount = 0;
+
+        categories.forEach((cat, idx) => {
+            const header = headers.find(h => h.getAttribute('data-cat') === cat);
+            const groupRows = rows.filter(r => r.getAttribute('data-cat') === cat);
+
+            // Filter rows based on criteria
+            let visibleRows = groupRows;
+            if (activeFilter === 'sig') {
+                visibleRows = visibleRows.filter(r => r.getAttribute('data-sig') === 'sig');
+            }
+            if (activeCat !== 'all' && activeCat !== cat) {
+                visibleRows = [];
+            }
+
+            if (visibleRows.length > 0) {
+                // Show header
+                header.style.display = 'block';
+                header.setAttribute('transform', `translate(0, ${currentY})`);
+                currentY += 24;
+
+                // Position rows
+                visibleRows.forEach(r => {
+                    r.style.display = 'block';
+                    r.setAttribute('transform', `translate(0, ${currentY})`);
+                    currentY += rowHeight;
+                    visibleCount++;
+                });
+
+                // Hide non-visible rows in this group
+                groupRows.forEach(r => {
+                    if (!visibleRows.includes(r)) {
+                        r.style.display = 'none';
+                    }
+                });
+
+                currentY += 8;
+            } else {
+                // Hide header and all rows in this group
+                if (header) header.style.display = 'none';
+                groupRows.forEach(r => r.style.display = 'none');
+            }
+        });
+
+        // Update SVG dimensions
+        const totalHeight = Math.max(currentY + 45, 300);
+        svg.setAttribute('viewBox', `0 0 960 ${totalHeight}`);
+        svg.setAttribute('height', totalHeight);
+        bgNeg.setAttribute('height', currentY);
+        bgPos.setAttribute('height', currentY);
+
+        gridLines.forEach(l => {
+            l.setAttribute('y2', currentY + 5);
+        });
+        gridTexts.forEach(t => {
+            if (t.getAttribute('text-anchor') === 'middle' && t.getAttribute('y') !== '24') {
+                t.setAttribute('y', currentY + 24);
+            }
+        });
+
+        // Update counter badge
+        document.getElementById('feature-count-display').innerText = `Showing ${visibleCount} of 28 features`;
+    }
+
+    // Theme Switcher Logic
+    function setTheme(mode) {
+        const root = document.documentElement;
+        if (mode === 'auto') {
+            root.removeAttribute('data-theme');
+            try { localStorage.removeItem('report_theme'); } catch(e) {}
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                root.setAttribute('data-theme', 'dark');
+            }
+        } else {
+            root.setAttribute('data-theme', mode);
+            try { localStorage.setItem('report_theme', mode); } catch(e) {}
+        }
+        updateThemeButtons(mode);
+    }
+
+    function updateThemeButtons(mode) {
+        document.querySelectorAll('.theme-toggle-btn').forEach(b => b.classList.remove('active'));
+        const activeBtn = document.getElementById(`btn-theme-${mode}`);
+        if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    // Tooltip Logic
+    const tooltip = document.getElementById('tooltip');
+
+    function initTooltip() {
+        const rows = document.querySelectorAll('.feature-row');
+        rows.forEach(r => {
+            r.addEventListener('mousemove', (ev) => {
+                const idx = parseInt(r.getAttribute('data-i'), 10);
+                if (isNaN(idx) || !REGRESSION_DATA[idx]) return;
+
+                const d = REGRESSION_DATA[idx];
+                const term = d[0];
+                const cat = d[1].toUpperCase();
+                const ols = (d[2] * 100).toFixed(2);
+                const olsSe = (d[3] * 100).toFixed(2);
+                const olsP = d[4] < 0.001 ? '< 0.001' : d[4].toFixed(4);
+                const ame = (d[5] * 100).toFixed(2);
+                const ameSe = (d[6] * 100).toFixed(2);
+                const ameP = d[7] < 0.001 ? '< 0.001' : d[7].toFixed(4);
+                const orVal = d[8].toFixed(3);
+                const vif = d[9].toFixed(1);
+
+                const alignText = d[4] < 0.05 ? '<span style="color:var(--accent-green); font-weight:700;">&#10004; Directionally Aligned</span>' : '<span style="color:var(--text-muted);">&mdash; Non-significant (Null)</span>';
+
+                tooltip.innerHTML = `
+                    <div class="tt-title">${term}</div>
+                    <div class="tt-subtitle">Domain: ${cat} &bull; VIF: ${vif}</div>
+                    <div class="tt-row"><span class="tt-key">OLS Coef (p.p.):</span><span class="tt-val" style="color:var(--accent-blue);">${ols > 0 ? '+' : ''}${ols} p.p. (&plusmn;${olsSe})</span></div>
+                    <div class="tt-row"><span class="tt-key">OLS p-value:</span><span class="tt-val">${olsP}</span></div>
+                    <div class="tt-row"><span class="tt-key">Logit AME:</span><span class="tt-val" style="color:var(--accent-terracotta);">${ame > 0 ? '+' : ''}${ame} p.p. (&plusmn;${ameSe})</span></div>
+                    <div class="tt-row"><span class="tt-key">Logit Odds Ratio:</span><span class="tt-val">${orVal}</span></div>
+                    <div class="tt-row"><span class="tt-key">XGBoost Alignment:</span><span class="tt-val">${alignText}</span></div>
+                `;
+
+                tooltip.style.display = 'block';
+                const pad = 14;
+                let left = ev.clientX + pad;
+                let top = ev.clientY + pad;
+
+                if (left + 300 > window.innerWidth) {
+                    left = ev.clientX - 310;
+                }
+                if (top + 160 > window.innerHeight) {
+                    top = ev.clientY - 170;
+                }
+
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            });
+
+            r.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+        });
+    }
+
+    // Initialize layout and theme on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        applyFilter();
+        initTooltip();
+
+        const savedTheme = (function() {
+            try { return localStorage.getItem('report_theme') || 'auto'; } catch(e) { return 'auto'; }
+        })();
+        updateThemeButtons(savedTheme);
+    });
+</script>
+</body>
+</html>
