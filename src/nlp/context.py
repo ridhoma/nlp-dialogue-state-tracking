@@ -329,4 +329,3 @@ def extract_customer_utterance(text: str) -> str:
     if "[CUSTOMER]:" in text:
         return text.rsplit("[CUSTOMER]:", 1)[-1].strip()
     return text.strip()
-

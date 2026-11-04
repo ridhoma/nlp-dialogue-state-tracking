@@ -59,11 +59,12 @@ OLS_REFERENCE_CATEGORIES: dict[str, str] = {
 def build_context_features(
     df_convos: pd.DataFrame,
     encoding: Literal["ols", "full"] = "ols",
+    version: str = "v01",
 ) -> pd.DataFrame:
     """
     Construct conversation context and structural features, including
-    `share_customer_turns`, `num_order_products`, and one-hot encoded
-    `flow` and `member_level`.
+    `share_customer_turns` (or `share_customer_turns_10pct` for v04+),
+    `num_order_products`, and one-hot encoded `flow` and `member_level`.
 
     Parameters
     ----------
@@ -73,13 +74,19 @@ def build_context_features(
         - `"ols"`: Drops reference categories (`flow="account_access"`,
           `member_level="guest"`) to avoid the dummy variable trap in linear models.
         - `"full"`: Retains all K indicator columns for tree-based models (GBDT).
+    version : str, default "v01"
+        Dataset version tag. For v04+, `share_customer_turns_10pct` is scaled by 10
+        so that regression coefficients represent marginal effect per 10 percentage points.
     """
     df_context = df_convos[
         ["convo_id", "resolved", "flow", "member_level", "num_turns"]
     ].copy()
 
-    df_context["share_customer_turns"] = (
-        df_convos["num_customer_turns"] / df_convos["num_turns"].clip(lower=1)
+    share_col = "share_customer_turns_10pct" if version >= "v04" else "share_customer_turns"
+    multiplier = 10.0 if version >= "v04" else 1.0
+
+    df_context[share_col] = (
+        (df_convos["num_customer_turns"] / df_convos["num_turns"].clip(lower=1)) * multiplier
     ).astype(float)
 
     df_context["num_order_products"] = (
@@ -106,13 +113,14 @@ def assemble_feature_dataset(
     df_dst: pd.DataFrame,
     df_ast: pd.DataFrame,
     encoding: Literal["ols", "full"] = "ols",
+    version: str = "v01",
     dst_features: list[str] = DST_SELECTED_FEATURES,
     ast_features: list[str] = AST_SELECTED_FEATURES,
 ) -> pd.DataFrame:
     """
     Merge context features with selected DST and AST feature subsets on `convo_id`.
     """
-    df_context = build_context_features(df_convos, encoding=encoding)
+    df_context = build_context_features(df_convos, encoding=encoding, version=version)
     df_dst_sub = df_dst[["convo_id", *dst_features]]
     df_ast_work = df_ast.copy()
     if "is_optimal_depth_2_or_3" in ast_features and "is_optimal_depth_2_or_3" not in df_ast_work.columns:
@@ -241,6 +249,7 @@ def main() -> None:
             df_dst=df_dst,
             df_ast=df_ast,
             encoding=enc,
+            version=args.version,
         )
         out_file = args.output_dir / f"features_{enc}_{args.version}.parquet"
         save_versioned_dataset(

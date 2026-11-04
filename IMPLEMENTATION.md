@@ -45,7 +45,9 @@ nlp-dialogue-state-tracking/
 │   └── 01_semantic_slots_extraction_evals.ipynb      # Phase 2 DST extraction benchmark notebook
 ├── scripts/
 │   ├── run_abcd_ingestion.py     # Standalone CLI runner for ABCD ETL data ingestion
-│   └── run_slot_extraction.py    # Batched GPU runner for two-stage slot extraction
+│   ├── run_slot_extraction.py    # Batched GPU runner for two-stage slot extraction
+│   ├── run_openai_batch_slot_extraction.py     # Asynchronous OpenAI Batch API slot extractor
+│   └── run_openai_decision_slot_extraction.py  # High-speed OpenAI Decisions API slot extractor
 ├── src/
 │   ├── abcd_helper/              # Core dataset loading and queryable schema library
 │   │   ├── __init__.py           # Exports public loading API and Conversation viewer
@@ -58,19 +60,23 @@ nlp-dialogue-state-tracking/
 │   ├── nlp/                      # Dialogue State Tracking NLP engine
 │   │   ├── __init__.py           # Package exports
 │   │   ├── context.py            # Rolling dialogue turn context extraction (DialogueTurnContext)
-│   │   └── slots.py              # TwoStageSlotExtractor, RegexMatcher, Calibrated SemanticMatcher
+│   │   ├── prompts.py            # Single source of truth for prompts, hypotheses, and predicates
+│   │   └── slots.py              # SemanticMatcher, OpenAIBatchSlotExtractor, OpenAIDecisionSlotExtractor
 │   ├── data_science/             # Data science and ML evaluation utilities
 │   │   ├── __init__.py           # Package exports
 │   │   └── evaluation.py         # Generic evaluate_multilabel() and MultiLabelEvaluationResult
-│   └── utils/                    # Shared presentation utilities
+│   └── utils/                    # Shared presentation and helper utilities
 │       ├── __init__.py           # Package exports
-│       └── display.py            # Dataset-agnostic ConversationView with dark/light themes
+│       ├── display_conversation.py # Dataset-agnostic ConversationView with dark/light themes
+│       ├── openai_helper.py      # Pydantic schemas, Batch JSONL generators, and Decision predicates
+│       └── renderings.py         # HTML dashboard and evaluation renderings
 └── tests/
     ├── test_data_loader.py       # Ingestion, schema, CNF, and resolution logic tests (10 tests)
     ├── test_display.py           # Interactive conversation viewer & theme tests (3 tests)
     ├── test_evaluation.py        # Generic multi-label evaluation metric tests (3 tests)
     ├── test_nlp_context.py       # Rolling dialogue context window extractor tests (9 tests)
-    └── test_slots.py             # Regex, 3-class NLI calibration, and two-stage routing tests (3 tests)
+    ├── test_openai_slots.py      # OpenAI Batch API and Decisions API mock unit tests (19 tests)
+    └── test_slots.py             # Regex, 3-class NLI calibration, and two-stage routing tests (9 tests)
 ```
 
 ---
@@ -333,22 +339,95 @@ Evaluated across customer turns against ABCD human-annotated `slot_tags`:
 
 *\*Note: The single false positive on email was Turn 15 of Convo 10295 (`"Asanders asanders@gmail.com"`), which is an actual email that human annotators omitted from `slot_tags` in ABCD.*
 
+### 6.6. OpenAI LLM Slot Extraction Architecture (Batch API & Decisions API)
+
+To bridge the performance delta between local NLI cross-encoders (70.1% Micro-F1) and production-grade LLM annotation (84.7% Micro-F1 / 93.3% Exact Match in Run 07), two dedicated OpenAI extraction architectures were developed in [`src/nlp/slots.py`](src/nlp/slots.py) and [`src/utils/openai_helper.py`](src/utils/openai_helper.py), powered by **`gpt-6-luna`**.
+
+```
+                           Raw Dialogue Turns (turns.parquet)
+                                           │
+                    ┌──────────────────────┴──────────────────────┐
+                    ▼                                             ▼
+       Method 1: OpenAI Batch API                    Method 2: OpenAI Decisions API
+    (OpenAIBatchSlotExtractor)                     (OpenAIDecisionSlotExtractor)
+                    │                                             │
+      Format Full Convo JSON (prompts.py)            Rolling Context Window (DialogueTurnContext)
+                    │                                             │
+      Structured Output Schema (Pydantic)            Predicate Questions Array (11 slots)
+                    │                                             │
+      OpenAI Batch Job (/v1/responses)               client.decisions.create(gpt-6-luna)
+      (50% Discount: $0.05 / 1M tokens)              (Zero Output Cost: $0.10 / 1M input)
+                    │                                             │
+                    └──────────────────────┬──────────────────────┘
+                                           ▼
+                   Standardized Customer Slot Table (Parquet)
+                  ['convo_id', 'turn_id', 'inferred_slots']
+```
+
+#### 6.6.1. Method 1: OpenAI Batch API (`OpenAIBatchSlotExtractor`)
+* **Core Philosophy:** Evaluates complete multi-turn dialogues in single prompt requests using [`SLOTS_EXTRACTION_PROMPT`](src/nlp/prompts.py). Whole-dialogue framing gives the model complete conversational context, eliminating historical ambiguities (e.g. `account_id` vs `username`).
+* **Structured Output Guarantee:** Employs Pydantic `ConversationSlotExtractionBatch` and JSON Schema strict mode (`strict: True`), ensuring 100% valid, typed, parseable JSON arrays with zero syntax corruption.
+* **Economics & Model:** Powered by **`gpt-6-luna`** via the `/v1/responses` (or `/v1/chat/completions`) endpoint under OpenAI's 24-hour asynchronous Batch API (50% discount: **$0.05/1M input**, **$0.25/1M output**).
+  * *1,000 Eval Set:* **~$0.075 USD** total.
+  * *Full Corpus (10,042 Convos):* **~$0.75 USD** total.
+* **Staged Offline Execution:** Built to support offline preparation without requiring API keys:
+  ```bash
+  # Step 1: Generate JSONL input offline (no API key needed)
+  python scripts/run_openai_batch_slot_extraction.py --dataset benchmark --action prepare
+
+  # Step 2: Submit batch to OpenAI
+  python scripts/run_openai_batch_slot_extraction.py --action submit
+
+  # Step 3: Poll status
+  python scripts/run_openai_batch_slot_extraction.py --action poll --batch-id batch_abc123
+
+  # Step 4: Download results & save Parquet
+  python scripts/run_openai_batch_slot_extraction.py --action download --batch-id batch_abc123
+  ```
+
+#### 6.6.2. Method 2: OpenAI Decisions API (`OpenAIDecisionSlotExtractor`)
+* **Core Philosophy:** Formulates slot filling as a multi-predicate classification problem over rolling dialogue context windows (`DialogueTurnContext`). Evaluates all candidate slots simultaneously in a single decision call per customer turn.
+* **Question Architecture:** Generates 11 typed `predicate` questions using [`DEFAULT_SLOT_PREDICATES`](src/nlp/prompts.py):
+  ```python
+  questions = [
+      {"name": "order_id", "type": "predicate", "instructions": "Does the customer provide or confirm an order ID number?"},
+      {"name": "email", "type": "predicate", "instructions": "Does the customer enter or confirm their email address?"},
+      # ... up to 11 candidate slots
+  ]
+  ```
+* **Economics & Model:** Powered by **`gpt-6-luna`** on `POST /v1/decisions`. Billed exclusively on input tokens (**$0.10/1M tokens**) with **$0.00 output charges**.
+  * *1,000 Eval Set (8,984 turns):* **~$0.24 USD** total.
+  * *Full Corpus (89,372 turns):* **~$2.23 USD** total.
+* **High-Throughput Parallelism:** Evaluates turns concurrently using `ThreadPoolExecutor` with configurable concurrency (`--max-workers 8`).
+* **Offline Inspection (`--dry-run`):** Inspects context documents, validates questions, and computes exact token economics without making API calls:
+  ```bash
+  python scripts/run_openai_decision_slot_extraction.py --dataset benchmark --dry-run
+  ```
+
 ---
 
 ## 7. Verification & Automated Tests
 
-All functionality across data ingestion, NLP context framing, slot extraction, display, and evaluation is validated by **32 automated pytest unit tests**:
+All functionality across data ingestion, NLP context framing, local NLI slot extraction, OpenAI Batch & Decisions extractors, feature engineering, and evaluation is validated by **75 automated pytest unit tests**:
 
+* [`tests/test_openai_slots.py`](tests/test_openai_slots.py) (**19 tests**):
+  * Validates client authentication, conversation formatting, `/v1/responses` and `/v1/chat/completions` JSONL generation, offline file writing, resilient JSON parsing (markdown, lists, objects), batch output parsing into Parquet DataFrames, Decisions API predicate construction, probability thresholding, mocked `OpenAIBatchSlotExtractor` and `OpenAIDecisionSlotExtractor` methods, and CLI script executions (`--action prepare` and `--dry-run`).
 * [`tests/test_data_loader.py`](tests/test_data_loader.py) (10 tests):
   * Validates 10,042 conversation rows, split distribution, turn sequences, 55 intents, 30 actions, CNF boolean satisfaction, and target $Y$ resolution.
 * [`tests/test_nlp_context.py`](tests/test_nlp_context.py) (9 tests):
   * Validates rolling context backward traversal, agent utterance counting, turn ordering, and conversation boundary isolation.
-* [`tests/test_slots.py`](tests/test_slots.py) (5 tests):
-  * Validates `SemanticMatcher` with raw `str` and `list[str]`, Option 1 3-class probability calibration, `return_scores` behavior, and empty utterance handling.
+* [`tests/test_slots.py`](tests/test_slots.py) (9 tests):
+  * Validates `SemanticMatcher` with raw `str` and `list[str]`, Option 1 3-class probability calibration, Stage 1 Informative Gate, Stage 3 Disambiguation Gate, and empty utterance handling.
+* [`tests/test_features.py`](tests/test_features.py) (10 tests):
+  * Validates CNF satisfaction, turn latency capping, upfront disclosure density, and AST action thrashing metrics.
 * [`tests/test_evaluation.py`](tests/test_evaluation.py) (5 tests):
   * Validates multi-label classification metrics, edge cases, `drop_zero_support=True` filtering, and HTML dashboard formatting.
 * [`tests/test_display.py`](tests/test_display.py) (3 tests):
   * Validates `ConversationView` HTML rendering, turn badges, speaker bubbles, and ABCD conversation viewer integration.
+* [`tests/test_visualisation.py`](tests/test_visualisation.py) (6 tests):
+  * Validates feature distribution rendering, correlation heatmaps, and confusion matrix plots.
+* [`tests/test_models.py`](tests/test_models.py) (3 tests):
+  * Validates baseline logistic and tree-based modeling utilities.
 
 Run all tests anytime with:
 ```bash

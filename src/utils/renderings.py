@@ -128,9 +128,7 @@ def render_evaluation_html(
 
         f1_val = row["f1"]
         bar_color = (
-            "#10b981"
-            if f1_val >= 0.75
-            else ("#f59e0b" if f1_val >= 0.4 else "#ef4444")
+            "#10b981" if f1_val >= 0.75 else ("#f59e0b" if f1_val >= 0.4 else "#ef4444")
         )
         bar_pct = max(min(int(f1_val * 100), 100), 0)
 
@@ -344,9 +342,7 @@ def render_binary_evaluation_html(
 
         f1_val = float(row["f1"])
         bar_color = (
-            "#10b981"
-            if f1_val >= 0.75
-            else ("#f59e0b" if f1_val >= 0.4 else "#ef4444")
+            "#10b981" if f1_val >= 0.75 else ("#f59e0b" if f1_val >= 0.4 else "#ef4444")
         )
         bar_pct = max(min(int(f1_val * 100), 100), 0)
 

@@ -1,30 +1,34 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from itertools import batched
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 
-from nlp.context import extract_customer_utterance
+import pandas as pd
 
-logger = logging.getLogger(__name__)
-
-DEFAULT_GATE_HYPOTHESIS: str = (
-    "The customer provides an identifier, contact info, code, name, product, payment method, or numeric amount."
+from nlp.context import extract_customer_contexts, extract_customer_utterance
+from nlp.prompts import (
+    DEFAULT_GATE_HYPOTHESIS,
+    DEFAULT_HYPOTHESES,
+    DEFAULT_SLOT_DEFINITIONS,
+    DEFAULT_SLOT_HYPOTHESES,
+    DEFAULT_SLOT_PREDICATES,
+    SLOTS_EXTRACTION_PROMPT,
+)
+from utils.openai_helper import (
+    DEFAULT_OPENAI_BATCH_MODEL,
+    DEFAULT_OPENAI_DECISION_MODEL,
+    build_decision_predicate_questions,
+    get_openai_client,
+    parse_batch_output_jsonl,
+    parse_decision_answers,
+    parse_llm_slot_annotations,
+    prepare_batch_input_jsonl,
 )
 
-DEFAULT_SLOT_HYPOTHESES: dict[str, str] = {
-    "account_id": "The customer enters their account ID.",
-    "amount": "The customer specifies a dollar amount or price.",
-    "email": "The customer enters their email address.",
-    "name": "The customer specifies a merchandise product name.",
-    "order_id": "The customer specifies an order ID number.",
-    "payment_method": "The customer specifies a payment method.",
-    "phone": "The customer provides a telephone phone number.",
-    "pin_number": "The customer enters their PIN number.",
-    "street_address": "The customer specifies a street address.",
-    "username": "The customer writes their account username in the message.",
-    "zip_code": "The customer provides a postal zip code.",
-}
+logger = logging.getLogger(__name__)
 
 DEFAULT_SLOT_THRESHOLDS: dict[str, float] = {
     "email": 0.98,
@@ -37,9 +41,18 @@ DEFAULT_SLOT_THRESHOLDS: dict[str, float] = {
     "payment_method": 0.90,
 }
 
-# Alias for backwards compatibility / shorthand
-DEFAULT_HYPOTHESES = DEFAULT_SLOT_HYPOTHESES
-
+__all__ = [
+    "DEFAULT_GATE_HYPOTHESIS",
+    "DEFAULT_HYPOTHESES",
+    "DEFAULT_SLOT_DEFINITIONS",
+    "DEFAULT_SLOT_HYPOTHESES",
+    "DEFAULT_SLOT_PREDICATES",
+    "DEFAULT_SLOT_THRESHOLDS",
+    "OpenAIBatchSlotExtractor",
+    "OpenAIDecisionSlotExtractor",
+    "SemanticMatcher",
+    "SlotMatcher",
+]
 
 
 class SlotMatcher(ABC):
@@ -80,7 +93,9 @@ class SemanticMatcher(SlotMatcher):
         default_threshold: float = 0.5,
         max_length: int = 128,
         use_fp16: bool = True,
-        hypothesis_template: str | dict[str, str] | Callable[[str], str] = "The customer specifies their {}.",
+        hypothesis_template: str
+        | dict[str, str]
+        | Callable[[str], str] = "The customer specifies their {}.",
         enable_informative_gate: bool = False,
         gate_hypothesis: str | None = None,
         gate_threshold: float = 0.02,
@@ -149,8 +164,6 @@ class SemanticMatcher(SlotMatcher):
             f"device={self.device}, threshold={self.threshold}, fp16={self.use_fp16}, "
             f"gate={self.enable_informative_gate}, disambig={self.enable_contextual_disambiguation})"
         )
-
-
 
     def format_hypothesis(self, slot: str) -> str:
         """Resolve NLI hypothesis premise for a given candidate slot name."""
@@ -250,21 +263,15 @@ class SemanticMatcher(SlotMatcher):
                 else [extract_customer_utterance(t) for t in texts]
             )
             gate_eval_indices = [
-                idx
-                for idx, ct in enumerate(resolved_cust_texts)
-                if ct and ct.strip()
+                idx for idx, ct in enumerate(resolved_cust_texts) if ct and ct.strip()
             ]
             passed_gate_indices: set[int] = set()
 
             if gate_eval_indices:
                 with torch.inference_mode():
                     for batch_indices in batched(gate_eval_indices, batch_size):
-                        chunk_premises = [
-                            resolved_cust_texts[i] for i in batch_indices
-                        ]
-                        chunk_hyps = [
-                            self.gate_hypothesis
-                        ] * len(chunk_premises)
+                        chunk_premises = [resolved_cust_texts[i] for i in batch_indices]
+                        chunk_hyps = [self.gate_hypothesis] * len(chunk_premises)
 
                         inputs = self.tokenizer(
                             chunk_premises,
@@ -410,3 +417,487 @@ class SemanticMatcher(SlotMatcher):
         return score_results if return_scores else list_results
 
 
+class OpenAIBatchSlotExtractor(SlotMatcher):
+    """
+    Dialogue State Tracking (Slot Extraction) via OpenAI Batch API.
+
+    Leverages whole-dialogue prompts with structured outputs (Pydantic / JSON Schema)
+    to annotate customer turns across conversations asynchronously at a 50% discount rate.
+    Defaults to `gpt-6-luna` using the `/v1/responses` endpoint.
+
+    Attributes
+    ----------
+    model_name : str
+        OpenAI model identifier (default: 'gpt-6-luna').
+    endpoint : {'/v1/responses', '/v1/chat/completions'}
+        Target OpenAI API endpoint for the batch requests.
+    convos_per_request : int
+        Number of conversations bundled per API request line.
+    """
+
+    def __init__(
+        self,
+        model_name: str = DEFAULT_OPENAI_BATCH_MODEL,
+        endpoint: Literal["/v1/responses", "/v1/chat/completions"] = "/v1/responses",
+        api_key: str | None = None,
+        client: Any | None = None,
+        convos_per_request: int = 1,
+        prompt: str | None = None,
+    ):
+        self.model_name = model_name
+        self.endpoint = endpoint
+        self.convos_per_request = convos_per_request
+        self.prompt = prompt or SLOTS_EXTRACTION_PROMPT
+        self._api_key = api_key
+        self._client = client
+
+    @property
+    def client(self) -> Any:
+        """Lazy-loaded OpenAI client instance."""
+        if self._client is None:
+            self._client = get_openai_client(api_key=self._api_key)
+        return self._client
+
+    def prepare_batch_file(
+        self,
+        df_turns: pd.DataFrame,
+        convo_ids: list[int | str] | None = None,
+        output_path: str | Path | None = None,
+        prompt: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Prepare `.jsonl` input lines and optionally save to disk for OpenAI Batch API submission.
+        Does NOT require an active OpenAI API key or internet connection.
+        """
+        return prepare_batch_input_jsonl(
+            df_turns=df_turns,
+            convo_ids=convo_ids,
+            output_path=output_path,
+            model=self.model_name,
+            endpoint=self.endpoint,
+            convos_per_request=self.convos_per_request,
+            prompt=prompt or self.prompt,
+        )
+
+    def submit_batch(
+        self,
+        input_file_path: str | Path,
+        completion_window: Literal["24h"] = "24h",
+        metadata: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Upload input JSONL file and create an asynchronous batch job.
+
+        Parameters
+        ----------
+        input_file_path : str | Path
+            Path to the local `.jsonl` file prepared by `prepare_batch_file`.
+        completion_window : {'24h'}, default '24h'
+            Target batch processing completion window.
+        metadata : dict[str, str], optional
+            Arbitrary key-value metadata to attach to the batch.
+
+        Returns
+        -------
+        str
+            The created batch ID (e.g. 'batch_abc123').
+        """
+        input_p = Path(input_file_path)
+        if not input_p.exists():
+            raise FileNotFoundError(f"Batch input file not found: {input_p}")
+
+        logger.info("Uploading batch input file '%s' to OpenAI...", input_p)
+        with open(input_p, "rb") as f:
+            file_obj = self.client.files.create(file=f, purpose="batch")
+
+        logger.info(
+            "File uploaded successfully (file_id=%s). Creating batch...", file_obj.id
+        )
+        batch = self.client.batches.create(
+            input_file_id=file_obj.id,
+            endpoint=self.endpoint,
+            completion_window=completion_window,
+            metadata=metadata
+            or {"project": "nlp-dialogue-state-tracking", "model": self.model_name},
+        )
+        logger.info(
+            "Batch created successfully! Batch ID: %s (status=%s)",
+            batch.id,
+            batch.status,
+        )
+        return str(batch.id)
+
+    def poll_batch(
+        self,
+        batch_id: str,
+        poll_interval_seconds: int = 30,
+        timeout_seconds: int = 86400,
+    ) -> Any:
+        """
+        Poll OpenAI Batch status until completion, cancellation, or failure.
+
+        Parameters
+        ----------
+        batch_id : str
+            The batch identifier returned by `submit_batch`.
+        poll_interval_seconds : int, default 30
+            Time to sleep between status checks.
+        timeout_seconds : int, default 86400 (24h)
+            Maximum time to wait before raising TimeoutError.
+
+        Returns
+        -------
+        Any
+            The completed batch object.
+        """
+        import time
+
+        start_time = time.time()
+        logger.info(
+            "Polling status for batch '%s' every %ds...",
+            batch_id,
+            poll_interval_seconds,
+        )
+
+        while True:
+            batch = self.client.batches.retrieve(batch_id)
+            status = getattr(batch, "status", None)
+            logger.info(
+                "Batch '%s' status: %s (elapsed: %.1fs)",
+                batch_id,
+                status,
+                time.time() - start_time,
+            )
+
+            if status in ("completed", "failed", "expired", "cancelled"):
+                if status != "completed":
+                    raise RuntimeError(
+                        f"Batch '{batch_id}' finished with non-successful status: '{status}'. "
+                        f"Errors: {getattr(batch, 'errors', None)}"
+                    )
+                return batch
+
+            if time.time() - start_time > timeout_seconds:
+                raise TimeoutError(
+                    f"Batch polling timed out after {timeout_seconds} seconds."
+                )
+
+            time.sleep(poll_interval_seconds)
+
+    def download_and_parse_results(
+        self,
+        output_file_id: str | None = None,
+        batch_id: str | None = None,
+        download_path: str | Path | None = None,
+    ) -> pd.DataFrame:
+        """
+        Download the output file from a completed batch and parse into
+        a standardized DataFrame with columns `['convo_id', 'turn_id', 'inferred_slots']`.
+        """
+        if output_file_id is None:
+            if batch_id is None:
+                raise ValueError("Must provide either `output_file_id` or `batch_id`.")
+            batch = self.client.batches.retrieve(batch_id)
+            output_file_id = getattr(batch, "output_file_id", None)
+            if not output_file_id:
+                raise ValueError(
+                    f"Batch '{batch_id}' does not have an output_file_id (status: {getattr(batch, 'status', None)})."
+                )
+
+        logger.info("Downloading batch output content (file_id=%s)...", output_file_id)
+        file_response = self.client.files.content(output_file_id)
+        raw_text = file_response.text
+
+        if download_path:
+            dl_p = Path(download_path)
+            dl_p.parent.mkdir(parents=True, exist_ok=True)
+            dl_p.write_text(raw_text, encoding="utf-8")
+            logger.info("Saved raw batch output to '%s'", dl_p)
+
+        return parse_batch_output_jsonl(raw_text)
+
+    def extract_from_conversations(
+        self,
+        df_turns: pd.DataFrame,
+        convo_ids: list[int | str] | None = None,
+        batch_input_path: str | Path | None = None,
+        batch_output_path: str | Path | None = None,
+        poll: bool = True,
+        poll_interval_seconds: int = 30,
+    ) -> pd.DataFrame | str:
+        """
+        End-to-end convenience workflow: prepare, submit, poll, and parse results.
+        If poll=False, returns the batch ID after submission.
+        """
+        jsonl_path = batch_input_path or "data/processed/batch_input_openai.jsonl"
+        self.prepare_batch_file(df_turns, convo_ids=convo_ids, output_path=jsonl_path)
+        batch_id = self.submit_batch(jsonl_path)
+
+        if not poll:
+            return batch_id
+
+        self.poll_batch(batch_id, poll_interval_seconds=poll_interval_seconds)
+        return self.download_and_parse_results(
+            batch_id=batch_id, download_path=batch_output_path
+        )
+
+    def extract_slots(
+        self,
+        text: str,
+        available_slots: list[str],
+        batch_size: int = 128,
+        return_scores: bool = False,
+    ) -> list[str] | dict[str, float]:
+        """Synchronous slot extraction on a single utterance."""
+        return self.extract_batch(
+            [text], available_slots, batch_size=batch_size, return_scores=return_scores
+        )[0]
+
+    def extract_batch(
+        self,
+        texts: list[str],
+        available_slots: list[str],
+        batch_size: int = 128,
+        return_scores: bool = False,
+    ) -> list[list[str]] | list[dict[str, float]]:
+        """
+        Synchronous batch slot extraction using `client.responses.create` or `chat.completions.create`.
+        """
+        import json
+
+        from nlp.prompts import SLOTS_EXTRACTION_PROMPT
+        from utils.openai_helper import ConversationSlotExtractionBatch
+
+        results: list[list[str]] | list[dict[str, float]] = [
+            {} if return_scores else [] for _ in texts
+        ]
+        if not texts or not available_slots:
+            return results
+
+        mock_payload = {
+            str(idx): [{"turn_id": 0, "speaker": "CUSTOMER", "text": t}]
+            for idx, t in enumerate(texts)
+        }
+
+        json_schema = ConversationSlotExtractionBatch.model_json_schema()
+        serialized_input = json.dumps(mock_payload, indent=2)
+
+        if self.endpoint == "/v1/responses":
+            resp = self.client.responses.create(
+                model=self.model_name,
+                instructions=SLOTS_EXTRACTION_PROMPT,
+                input=serialized_input,
+                text={
+                    "format": {
+                        "type": "json_schema",
+                        "name": "slot_extraction_batch",
+                        "strict": True,
+                        "schema": json_schema,
+                    }
+                },
+            )
+            output_items = getattr(resp, "output", [])
+            content_text = ""
+            for it in output_items:
+                for part in getattr(it, "content", []):
+                    if hasattr(part, "text"):
+                        content_text = part.text
+                        break
+        else:
+            resp = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": SLOTS_EXTRACTION_PROMPT},
+                    {"role": "user", "content": serialized_input},
+                ],
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "slot_extraction_batch",
+                        "strict": True,
+                        "schema": json_schema,
+                    },
+                },
+            )
+            content_text = resp.choices[0].message.content or ""
+
+        annotations = parse_llm_slot_annotations(content_text)
+        for ann in annotations:
+            idx = int(ann.conversation_id)
+            if 0 <= idx < len(results):
+                active = [s for s in ann.slots if s in available_slots]
+                if return_scores:
+                    results[idx] = {s: 1.0 for s in active}
+                else:
+                    results[idx] = active
+
+        return results
+
+
+class OpenAIDecisionSlotExtractor(SlotMatcher):
+    """
+    Dialogue State Tracking (Slot Extraction) via OpenAI Decisions API (`client.decisions.create`).
+
+    Uses `gpt-6-luna` to evaluate multiple slot predicates simultaneously in a single
+    decision request per customer turn with zero output token fees ($0.10/1M input).
+
+    Attributes
+    ----------
+    model_name : str
+        Target Decisions API model (default: 'gpt-6-luna').
+    threshold : float | dict[str, float]
+        Confidence cutoff(s) for predicate probability.
+    default_threshold : float
+        Fallback cutoff for slots not present in a threshold dictionary.
+    max_workers : int
+        Thread pool concurrency for turn evaluation (default: 8).
+    """
+
+    def __init__(
+        self,
+        model_name: str = DEFAULT_OPENAI_DECISION_MODEL,
+        threshold: float | dict[str, float] = 0.50,
+        default_threshold: float = 0.50,
+        api_key: str | None = None,
+        client: Any | None = None,
+        max_workers: int = 8,
+        custom_instructions: dict[str, str] | None = None,
+    ):
+        self.model_name = model_name
+        self.threshold = threshold
+        self.default_threshold = default_threshold
+        self.max_workers = max_workers
+        self.custom_instructions = custom_instructions or DEFAULT_SLOT_PREDICATES
+        self._api_key = api_key
+        self._client = client
+
+    @property
+    def client(self) -> Any:
+        """Lazy-loaded OpenAI client instance."""
+        if self._client is None:
+            self._client = get_openai_client(api_key=self._api_key)
+        return self._client
+
+    def extract_slots(
+        self,
+        text: str,
+        available_slots: list[str],
+        batch_size: int = 128,
+        return_scores: bool = False,
+    ) -> list[str] | dict[str, float]:
+        """
+        Extract active slots from a single utterance using `client.decisions.create`.
+        Evaluates all candidate slots simultaneously as predicate questions.
+        """
+        if not text or not str(text).strip() or not available_slots:
+            return {} if return_scores else []
+
+        questions = build_decision_predicate_questions(
+            available_slots=available_slots,
+            custom_instructions=self.custom_instructions,
+        )
+
+        decision = self.client.decisions.create(
+            model=self.model_name,
+            input=str(text),
+            questions=questions,
+        )
+
+        answers = getattr(decision, "answers", [])
+        scores = parse_decision_answers(
+            answers,
+            thresholds=self.threshold,
+            default_threshold=self.default_threshold,
+        )
+
+        if return_scores:
+            return scores
+        return sorted(scores.keys())
+
+    def extract_batch(
+        self,
+        texts: list[str],
+        available_slots: list[str],
+        batch_size: int = 128,
+        return_scores: bool = False,
+        max_workers: int | None = None,
+    ) -> list[list[str]] | list[dict[str, float]]:
+        """
+        Extract active slots across multiple text utterances concurrently
+        using a thread pool over the Decisions API.
+        """
+        if not texts:
+            return []
+        workers = max_workers or self.max_workers
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(
+                    self.extract_slots,
+                    text,
+                    available_slots,
+                    batch_size=batch_size,
+                    return_scores=return_scores,
+                )
+                for text in texts
+            ]
+            results = [f.result() for f in futures]
+
+        return results
+
+    def extract_from_conversations(
+        self,
+        df_turns: pd.DataFrame,
+        available_slots: list[str] | None = None,
+        min_prior_agent_utterances: int = 1,
+        return_scores: bool = False,
+        max_workers: int | None = None,
+    ) -> pd.DataFrame:
+        """
+        Extract contextual dialogue windows and run decision slot extraction
+        across all customer turns in `df_turns`. Returns a standardized DataFrame
+        with columns `['convo_id', 'turn_id', 'inferred_slots']`.
+        """
+        all_documents = extract_customer_contexts(
+            df_turns,
+            min_prior_agent_utterances=min_prior_agent_utterances,
+            group_by_convo=False,
+        )
+
+        target_slots = available_slots or sorted(self.custom_instructions.keys())
+        batch_texts = [
+            doc.get_full_document(strip_prior_customer_utterances=True)
+            for doc in all_documents
+        ]
+
+        logger.info(
+            "Running Decisions API slot extraction on %d customer documents (%d slots, workers=%d)...",
+            len(batch_texts),
+            len(target_slots),
+            max_workers or self.max_workers,
+        )
+
+        batch_results = self.extract_batch(
+            batch_texts,
+            available_slots=target_slots,
+            return_scores=return_scores,
+            max_workers=max_workers,
+        )
+
+        records: list[dict[str, Any]] = []
+        for doc, res in zip(all_documents, batch_results):
+            rec: dict[str, Any] = {
+                "convo_id": doc.convo_id,
+                "turn_id": doc.turn_id,
+                "inferred_slots": sorted(res.keys()) if return_scores else sorted(res),
+            }
+            if return_scores:
+                rec["confidence_scores"] = [
+                    float(res[s]) for s in rec["inferred_slots"]
+                ]
+            records.append(rec)
+
+        df_out = pd.DataFrame(records)
+        df_out["convo_id"] = df_out["convo_id"].astype("int64")
+        df_out["turn_id"] = df_out["turn_id"].astype("int64")
+        return df_out
